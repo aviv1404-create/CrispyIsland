@@ -50,6 +50,12 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
   // If the browser blocked autoplay (or the player never reports in), get the
   // static and the shield out of the way so the viewer can press play.
   const [tapToPlay, setTapToPlay] = useState(false)
+  // A shuffled YouTube playlist starts on a random video every time: once the
+  // player reports the list, jump to a random spot and turn YouTube's own
+  // shuffle on. The static stays up until that jump has happened.
+  const wantShuffle = isList && tape?.order === 'shuffle'
+  const [listReady, setListReady] = useState(false)
+  const shuffleTarget = useRef<number | null>(null)
 
   const insert = (i: number) => {
     setAt(i)
@@ -72,6 +78,8 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
   useEffect(() => {
     setYt({ state: -1 })
     setTapToPlay(false)
+    setListReady(false)
+    shuffleTarget.current = null
     setLoading(true)
     const t = setTimeout(() => setLoading(false), 700)
     return () => clearTimeout(t)
@@ -117,6 +125,24 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
               ? info.playerState
               : undefined
         if (state === 1) setTapToPlay(false)
+        const listLen = typeof info === 'object' && Array.isArray(info?.playlist) ? info.playlist.length : 0
+        if (embed.playlist && wantShuffle && shuffleTarget.current === null && listLen > 0) {
+          const target = Math.floor(Math.random() * listLen)
+          shuffleTarget.current = target
+          const send = (func: string, args: unknown[]) =>
+            ifr?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), '*')
+          send('setShuffle', [true])
+          if (target > 0) send('playVideoAt', [target])
+          else setListReady(true)
+          setTimeout(() => setListReady(true), 4000) // never leave the static up for good
+        }
+        if (
+          state === 1 &&
+          shuffleTarget.current !== null &&
+          typeof info === 'object' &&
+          info?.playlistIndex === shuffleTarget.current
+        )
+          setListReady(true)
         if (state !== undefined || (typeof info === 'object' && info?.playlistIndex !== undefined)) {
           setYt(prev => ({
             state: state ?? prev.state,
@@ -141,7 +167,7 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
       ifr?.removeEventListener('load', hello)
       clearInterval(t)
     }
-  }, [playing, embed])
+  }, [playing, embed, wantShuffle])
 
   const ch = (d: number) => insert((at + d + tapes.length) % tapes.length)
   // ⏭ — inside a YouTube playlist, ask the player to skip; otherwise move on
@@ -191,7 +217,9 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
                       <>
                         {/* Static over the picture until YouTube is actually
                             playing (loading, buffering, between videos). */}
-                        {yt.state !== 1 && <div className="tv-static tv-cover" aria-hidden="true" />}
+                        {(yt.state !== 1 || (wantShuffle && !listReady)) && (
+                          <div className="tv-static tv-cover" aria-hidden="true" />
+                        )}
                         {/* Clicks land on the TV, not on YouTube: no pausing
                             into YouTube's suggestion screen. */}
                         <div className="tv-shield" aria-hidden="true" />

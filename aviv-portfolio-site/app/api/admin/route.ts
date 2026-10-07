@@ -1,6 +1,7 @@
-import { NextRequest } from 'next/server'
+import { after, NextRequest } from 'next/server'
 import { getTree, loadTree, saveTree, treeRev } from '@/lib/content'
 import { normalizeTree, TreeError } from '@/lib/normalize'
+import { deleteIfStillUnused, removedUrls } from '@/lib/storage'
 import { currentAdmin, requireAdmin } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'
@@ -54,6 +55,21 @@ export async function PUT(req: NextRequest) {
 
     const tree = normalizeTree(wrapped ? body.tree : body)
     await saveTree(tree)
+
+    // Whatever was taken off the site (a deleted photo, a replaced poster…)
+    // is deleted from the store too, so storage only holds what's shown.
+    // It runs after the response, 30 seconds later, against the latest
+    // content — so an "Undo" in the meantime keeps the file. A failure here
+    // never fails the save; "Clean up" in the storage meter catches leftovers.
+    const removed = removedUrls(current, tree)
+    if (removed.length) {
+      after(async () => {
+        await new Promise(r => setTimeout(r, 30_000))
+        const latest = await loadTree()
+        if (latest.source === 'error') return
+        await deleteIfStillUnused(removed, latest.tree).catch(err => console.error('could not delete removed files', err))
+      })
+    }
     return Response.json({ ok: true, tree, rev: await treeRev(tree) })
   } catch (err) {
     if (err instanceof TreeError) {

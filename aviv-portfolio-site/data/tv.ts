@@ -19,6 +19,8 @@ export const TAPES: Tape[] = [
     title: 'TAPE EXCLUSIVE',
     art: '/tv/tape-exclusive.png',
     color: '#000000',
+    // starts on a random video each time, then plays the list shuffled
+    order: 'shuffle',
     // the "קריספי טייפ" YouTube playlist — plays through and loops
     videos: [{ id: 'crispy-tape', title: 'קריספי טייפ', url: 'https://www.youtube.com/playlist?list=PLJWK9y5PScgk' }],
   },

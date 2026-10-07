@@ -3080,3 +3080,63 @@ li.sort-over-after::after { top: auto; bottom: -3px; }
 .tv-screen .tv-cover { z-index: 2; opacity: 1; }
 .tv-screen .tv-shield { position: absolute; inset: 0; z-index: 3; cursor: default; }
 .tv-screen .tv-glass { z-index: 4; }
+
+/* ── Admin: storage meter ─────────────────────────────── */
+.sm { padding: 8px 12px 9px; border-top: 1px solid var(--hairline); background: var(--paper); font-size: 11px; color: #555; }
+.sm.compact { margin: 8px 12px 0; border: 1px solid var(--hairline); border-radius: 8px; }
+.sm-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.sm-head strong { font-weight: 700; color: #222; letter-spacing: 0.03em; }
+.sm-head span { margin-left: auto; font-variant-numeric: tabular-nums; }
+.sm-refresh { border: 0; background: none; padding: 0 2px; font-size: 13px; line-height: 1; color: #888; cursor: pointer; }
+.sm-refresh:hover { color: #222; }
+.sm-bar { position: relative; height: 12px; border-radius: 6px; overflow: hidden; background: linear-gradient(#d9d9d9, #f2f2f2); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 0 #fff; }
+.sm-bar span { position: absolute; inset: 0 auto 0 0; min-width: 4px; border-radius: inherit; transition: width 0.6s ease;
+  background: linear-gradient(#9fe2a6, #3fae4b 55%, #2f9a3b); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6); }
+.sm-bar.high span { background: linear-gradient(#ffe08a, #e8b021 55%, #d39a10); }
+.sm-bar.full span { background: linear-gradient(#ffaaa0, #e0402e 55%, #c42f1f); }
+.sm-bar span::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.18) 0 6px, transparent 6px 12px); }
+.sm-note { margin: 6px 0 0; line-height: 1.4; }
+.sm-note.warn { color: #9a6a00; }
+.sm-note.error { color: #c0392b; }
+.sm-clean { border: 1px solid #b9b9b9; border-radius: 4px; background: linear-gradient(#fff, #e6e6e6); padding: 1px 8px; font-size: 11px; cursor: pointer; }
+.sm-clean:disabled { opacity: 0.6; cursor: default; }
+
+/* ── Phone desktop: picture above the label, never overlapping ── */
+@media (max-width: 700px), (hover: none) {
+  .desktop.mobile .desktop-icons .float-icon { height: 88px !important; }
+  .desktop.mobile .desktop-icons .float-icon-body { justify-content: flex-start; gap: 6px; padding-top: 2px; animation: none; }
+  .desktop.mobile .desktop-icons .float-icon-pic { flex: none; height: 48px; align-items: center; }
+  .desktop.mobile .desktop-icons .float-icon-label { flex: none; position: relative; z-index: 1; }
+}
+
+/* ── Phone desktop: long-press → icons wiggle and can be dragged into a new order ── */
+.float-field:not(.free) .float-icon { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+.float-field.wiggle .float-icon { touch-action: none; }
+.float-field.wiggle .float-icon-body { animation: icon-wiggle 0.3s ease-in-out infinite alternate; }
+.float-field.wiggle .float-icon:nth-child(2n) .float-icon-body { animation-delay: -0.15s; }
+.float-field.wiggle .float-icon.lifted .float-icon-body { animation: none; transform: scale(1.12); }
+.float-field.wiggle .float-icon.lifted .float-icon-pic { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.3)); }
+@keyframes icon-wiggle { from { rotate: -2.2deg; } to { rotate: 2.2deg; } }
+.float-done {
+  position: fixed; left: 50%; bottom: 96px; z-index: 60; transform: translateX(-50%);
+  padding: 8px 26px; border-radius: 999px; border: 1px solid #1d5fb4;
+  background: linear-gradient(#6fb1ff, #2a78d6); color: #fff; font: 600 15px/1 -apple-system, BlinkMacSystemFont, sans-serif;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+@media (prefers-reduced-motion: reduce) { .float-field.wiggle .float-icon-body { animation: none; } }
+
+/* Game keys on phones: ▲▼ arrows stacked beside YES / NO / ENTER */
+.dos-arrows { display: flex; flex-direction: column; gap: 6px; }
+.keycap.keycap-arrow { width: 56px; height: 33px; font-size: 14px; letter-spacing: 0; border-radius: 6px; box-shadow: inset 0 -4px 0 #a99a72, inset 0 2px 0 #fffaf0, 0 3px 0 #000; }
+.keycap.keycap-arrow:active { transform: translateY(2px); box-shadow: inset 0 -2px 0 #a99a72, inset 0 2px 0 #fffaf0, 0 1px 0 #000; }
+@media (max-width: 420px) {
+  .dos.running .dos-keys { gap: 7px; }
+  .dos-keys .keycap:not(.keycap-arrow) { width: 70px; }
+}
+
+/* About: a badge with a link — the whole row is clickable */
+.edu-link { display: flex; align-items: center; gap: 16px; flex: 1; margin: -4px -8px; padding: 4px 8px; border-radius: 8px; color: inherit; text-decoration: none; cursor: pointer; transition: background 0.15s ease; }
+.edu-link:hover { background: rgba(42, 120, 214, 0.08); }
+.edu-link:hover .edu-logo { transform: scale(1.06); }
+.edu-logo { transition: transform 0.15s ease; }
+.edu-go { color: var(--accent); font-weight: 400; }

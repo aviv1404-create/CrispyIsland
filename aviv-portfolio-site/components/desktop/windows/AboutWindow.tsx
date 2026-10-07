@@ -12,53 +12,86 @@ import type { FrameProps } from './frame'
 import VisitCounter from '../VisitCounter'
 
 // Pixel badges Aviv drew for each place (public/logos/badge-*.png).
-const EDUCATION = [
+// `href` (optional): clicking the badge opens that site in a new tab.
+interface Badge {
+  name: string
+  hebrew: string
+  detail: string
+  logo: string
+  href?: string
+}
+
+const EDUCATION: Badge[] = [
   {
     name: 'ORT Psagot Karmiel — College of Film & Television',
     hebrew: 'אורט פסגות כרמיאל — מכללה לקולנוע וטלוויזיה',
     detail: 'Film & Television Engineering',
     logo: '/logos/badge-ort.png',
+    href: 'https://film-psagot.ort.org.il/',
   },
   {
     name: 'The Arts High School',
     hebrew: 'התיכון לאמנויות',
     detail: '',
     logo: '/logos/badge-arts.png',
+    href: 'https://jer-art-school.org.il/',
   },
 ]
 
-const SERVICE = [
+const SERVICE: Badge[] = [
   {
     name: 'Israeli Navy — Operational Photographer',
     hebrew: 'חיל הים — צלם מבצעי',
     detail: 'Three years of service',
     logo: '/logos/badge-navy.png',
+    href: 'https://www.idf.il/%D7%90%D7%AA%D7%A8%D7%99-%D7%99%D7%97%D7%99%D7%93%D7%95%D7%AA/%D7%96%D7%A8%D7%95%D7%A2-%D7%94%D7%99%D7%9D/',
   },
   {
     name: 'Peak Production — Member',
     hebrew: 'פיק הפקות — חבר צוות',
     detail: 'One of the key members',
     logo: '/logos/badge-peak.png',
+    href: 'https://www.peakstudios.video/',
   },
 ]
 
-function Badges({ list }: { list: typeof EDUCATION }) {
+function Badges({ list }: { list: Badge[] }) {
   return (
     <ul className="edu-list">
-      {list.map(e => (
-        <li key={e.name} className="edu-item">
-          <span className="edu-logo">
-            <img src={e.logo} alt="" />
-          </span>
-          <span className="edu-text">
-            <strong>{e.name}</strong>
-            <span lang="he" dir="rtl">
-              {e.hebrew}
+      {list.map(e => {
+        const body = (
+          <>
+            <span className="edu-logo">
+              <img src={e.logo} alt="" />
             </span>
-            {e.detail && <span className="edu-detail">{e.detail}</span>}
-          </span>
-        </li>
-      ))}
+            <span className="edu-text">
+              <strong>
+                {e.name}
+                {e.href && (
+                  <span className="edu-go" aria-hidden="true">
+                    {' '}↗
+                  </span>
+                )}
+              </strong>
+              <span lang="he" dir="rtl">
+                {e.hebrew}
+              </span>
+              {e.detail && <span className="edu-detail">{e.detail}</span>}
+            </span>
+          </>
+        )
+        return (
+          <li key={e.name} className="edu-item">
+            {e.href ? (
+              <a className="edu-link" href={e.href} target="_blank" rel="noopener noreferrer" title={`Open ${e.name.split(' — ')[0]}`}>
+                {body}
+              </a>
+            ) : (
+              body
+            )}
+          </li>
+        )
+      })}
     </ul>
   )
 }

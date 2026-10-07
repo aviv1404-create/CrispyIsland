@@ -38,6 +38,9 @@ interface FloatFieldProps {
    *  (px, on top of the padding). Others flow in around them. Only used
    *  when icons are draggable; visitors' own arrangements still win. */
   presets?: Record<string, Anchor>
+  /** Phones: icons sit in a grid; long-press makes them wiggle, then drag to
+   *  re-order (like a phone home screen). The order is remembered. */
+  reorderable?: boolean
 }
 
 export interface Anchor {
@@ -73,6 +76,21 @@ function savePositions(scope: string, positions: Record<string, Point>) {
   } catch {
     // private mode / storage full — the arrangement just won't persist
   }
+}
+
+function loadOrder(scope: string): string[] {
+  try {
+    const raw = localStorage.getItem(`${storeKey(scope)}:order`)
+    return raw ? (JSON.parse(raw) as string[]) : []
+  } catch {
+    return []
+  }
+}
+
+function saveOrder(scope: string, order: string[]) {
+  try {
+    localStorage.setItem(`${storeKey(scope)}:order`, JSON.stringify(order))
+  } catch {}
 }
 
 function clearPositions(scope: string) {
@@ -164,6 +182,7 @@ export default function FloatField({
   fill = false,
   className = '',
   presets,
+  reorderable = false,
 }: FloatFieldProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
@@ -172,6 +191,12 @@ export default function FloatField({
   const [order, setOrder] = useState<string[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const { openMenu } = useContextMenu()
+
+  // ── Phone grid: long-press to wiggle, then drag to re-order ──
+  const [gridOrder, setGridOrder] = useState<string[]>([])
+  const [wiggle, setWiggle] = useState(false)
+  const [moving, setMoving] = useState<string | null>(null)
+  const hold = useRef<{ timer?: ReturnType<typeof setTimeout>; x: number; y: number; pointerId: number } | null>(null)
 
   // Measure the field; re-measure whenever it changes size.
   useLayoutEffect(() => {
@@ -187,9 +212,68 @@ export default function FloatField({
   // Saved positions load after mount so server and client render the same grid first.
   useEffect(() => {
     setSaved(loadPositions(scope))
-  }, [scope])
+    if (reorderable) setGridOrder(loadOrder(scope))
+  }, [scope, reorderable])
 
   const free = draggable && size !== null
+  const gridMode = reorderable && !draggable
+
+  const shown = gridMode && gridOrder.length
+    ? [...entries].sort((a, b) => {
+        const ia = gridOrder.indexOf(a.id)
+        const ib = gridOrder.indexOf(b.id)
+        return (ia < 0 ? 1e6 : ia) - (ib < 0 ? 1e6 : ib)
+      })
+    : entries
+
+  const gridDown = (e: React.PointerEvent, entry: FloatEntry) => {
+    if (wiggle) {
+      // already wiggling: pick this icon up
+      e.preventDefault()
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+      setMoving(entry.id)
+      return
+    }
+    const h = { x: e.clientX, y: e.clientY, pointerId: e.pointerId } as NonNullable<typeof hold.current>
+    h.timer = setTimeout(() => {
+      hold.current = null
+      suppressClick.current = true
+      setWiggle(true)
+      setMoving(entry.id)
+      try {
+        navigator.vibrate?.(12)
+      } catch {}
+    }, 450)
+    hold.current = h
+  }
+  const gridMove = (e: React.PointerEvent) => {
+    const h = hold.current
+    if (h && h.pointerId === e.pointerId && Math.hypot(e.clientX - h.x, e.clientY - h.y) > 8) {
+      clearTimeout(h.timer) // the finger is scrolling, not holding
+      hold.current = null
+    }
+    if (!wiggle || !moving) return
+    const over = (document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null)?.closest<HTMLElement>('[data-entry]')
+    const target = over?.dataset.entry
+    if (!target || target === moving || !entries.some(x => x.id === target)) return
+    const ids = shown.map(x => x.id).filter(id => id !== moving)
+    ids.splice(ids.indexOf(target) + (shown.findIndex(x => x.id === moving) < shown.findIndex(x => x.id === target) ? 1 : 0), 0, moving)
+    setGridOrder(ids)
+  }
+  const gridUp = () => {
+    if (hold.current) {
+      clearTimeout(hold.current.timer)
+      hold.current = null
+    }
+    if (moving) {
+      setMoving(null)
+      saveOrder(scope, shown.map(x => x.id))
+    }
+  }
+  const endWiggle = () => {
+    setWiggle(false)
+    setMoving(null)
+  }
   const defaults = size ? layoutWithPresets(entries, size.w, fill ? size.h : Infinity, arrange, draggable ? presets : undefined) : {}
 
   const clamp = useCallback(
@@ -378,14 +462,17 @@ export default function FloatField({
   return (
     <div
       ref={ref}
-      className={`float-field${free ? ' free' : ''}${fill ? ' fill' : ''} ${className}`}
+      className={`float-field${free ? ' free' : ''}${fill ? ' fill' : ''}${wiggle ? ' wiggle' : ''} ${className}`}
       style={free && !fill ? { height: contentH } : undefined}
       onContextMenu={onFieldMenu}
       onPointerDown={e => {
-        if (e.target === e.currentTarget) setSelected(null)
+        if (e.target === e.currentTarget) {
+          setSelected(null)
+          if (wiggle) endWiggle()
+        }
       }}
     >
-      {entries.map((entry, i) => {
+      {shown.map((entry, i) => {
         const cell = entry.cell ?? DEFAULT_CELL
         const p = free ? posOf(entry) : null
         const isLive = live?.id === entry.id
@@ -394,7 +481,7 @@ export default function FloatField({
           <button
             key={entry.id}
             type="button"
-            className={`float-icon${isLive ? ' lifted' : ''}${selected === entry.id ? ' selected' : ''}`}
+            className={`float-icon${isLive || moving === entry.id ? ' lifted' : ''}${selected === entry.id ? ' selected' : ''}`}
             data-entry={entry.id}
             style={{
               width: cell.w,
@@ -412,12 +499,22 @@ export default function FloatField({
               ['--bob-delay' as string]: `${-((i * 1.37) % 6)}s`,
               ['--tilt' as string]: `${isLive ? live!.tilt : 0}deg`,
             }}
-            onPointerDown={e => onPointerDown(e, entry)}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-            onClick={e => onClick(e, entry)}
-            onContextMenu={e => onIconMenu(e, entry)}
+            onPointerDown={e => (gridMode ? gridDown(e, entry) : onPointerDown(e, entry))}
+            onPointerMove={gridMode ? gridMove : onPointerMove}
+            onPointerUp={gridMode ? gridUp : onPointerUp}
+            onPointerCancel={gridMode ? gridUp : onPointerUp}
+            onClick={e => {
+              if (gridMode && wiggle) {
+                suppressClick.current = false
+                return
+              }
+              onClick(e, entry)
+            }}
+            onContextMenu={e => {
+              // phones: a long-press means "move icons", not the menu
+              if (gridMode) e.preventDefault()
+              else onIconMenu(e, entry)
+            }}
             onKeyDown={e => {
               if ((e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) && entry.menu?.length) {
                 e.preventDefault()
@@ -434,6 +531,11 @@ export default function FloatField({
           </button>
         )
       })}
+      {wiggle && (
+        <button type="button" className="float-done" onClick={endWiggle}>
+          Done
+        </button>
+      )}
     </div>
   )
 }

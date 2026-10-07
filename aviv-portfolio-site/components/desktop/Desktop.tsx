@@ -429,6 +429,7 @@ export default function Desktop({ tree, isAdmin, children }: DesktopProps) {
           entries={deskEntries}
           arrange={isMobile ? 'rows' : 'right-column'}
           draggable={!isMobile}
+          reorderable={isMobile}
           presets={DESK_LAYOUT}
           fill
           className="desktop-icons"

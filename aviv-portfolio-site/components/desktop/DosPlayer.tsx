@@ -13,6 +13,9 @@ export const GAME_KEYS = {
   no: { code: 75, key: 'k', label: 'NO', letter: 'K', hebrew: 'ל' },
   enter: { code: 257, key: 'Enter', label: 'ENTER', letter: '↵', hebrew: '' },
   esc: { code: 256, key: 'Escape', label: 'ESC', letter: 'Esc', hebrew: '' },
+  // arrow keys (js-dos key codes): moving through menus and lists
+  up: { code: 265, key: 'ArrowUp', label: 'UP', letter: '▲', hebrew: '' },
+  down: { code: 264, key: 'ArrowDown', label: 'DOWN', letter: '▼', hebrew: '' },
 } as const
 type GameKey = keyof typeof GAME_KEYS
 declare global {
@@ -134,6 +137,22 @@ export default function DosPlayer({ bundle, cover, label }: { bundle: string; co
       )}
       {state === 'running' && (
         <div className="dos-keys" role="group" aria-label="Game keys">
+          <div className="dos-arrows">
+            {(['up', 'down'] as const).map(k => (
+              <button
+                key={k}
+                type="button"
+                className={`keycap keycap-arrow keycap-${k}`}
+                onPointerDown={e => {
+                  e.preventDefault()
+                  press(k)
+                }}
+                aria-label={GAME_KEYS[k].label}
+              >
+                {GAME_KEYS[k].letter}
+              </button>
+            ))}
+          </div>
           {(['yes', 'no', 'enter'] as const).map(k => {
             const g = GAME_KEYS[k]
             return (

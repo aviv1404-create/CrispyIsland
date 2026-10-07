@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import FolderDialog from './FolderDialog'
 import ItemInfo from './ItemInfo'
 import { useAdminStore } from './useAdminStore'
@@ -14,6 +14,7 @@ import PreviewPane from './PreviewPane'
 import EventsEditor from './EventsEditor'
 import TickerEditor from './TickerEditor'
 import TvEditor from './TvEditor'
+import StorageMeter from './StorageMeter'
 import { useDragSort } from './useDragSort'
 import PixIcon from '@/components/PixIcon'
 import { folderIconFor, itemIconFor } from '@/components/desktop/icons'
@@ -60,6 +61,14 @@ export default function AdminApp({ initialTree, initialRev, uploadMode, user, re
   const router = useRouter()
   const { tree, apply, save, error, pending, setError, setSave } = useAdminStore(initialTree, initialRev, readOnly)
   const uploads = useUploadQueue(uploadMode, apply)
+  // Storage meter: re-read after a save or when an upload batch finishes.
+  const [storageBump, setStorageBump] = useState(0)
+  useEffect(() => {
+    if (save === 'saved') setStorageBump(b => b + 1)
+  }, [save])
+  useEffect(() => {
+    if (!uploads.busy) setStorageBump(b => b + 1)
+  }, [uploads.busy])
   const [folderId, setFolderId] = useState<string | null>(null)
   const [infoId, setInfoId] = useState<string | null>(null)
   const [dialog, setDialog] = useState<'new' | 'rename' | null>(null)
@@ -521,6 +530,8 @@ export default function AdminApp({ initialTree, initialRev, uploadMode, user, re
       )}
 
       {uploads.jobs.length > 0 && <UploadTray queue={uploads} />}
+
+      {!readOnly && <StorageMeter bump={storageBump} />}
 
       <div className={`win-status${save === 'error' ? ' error' : ''}`}>
         {status}

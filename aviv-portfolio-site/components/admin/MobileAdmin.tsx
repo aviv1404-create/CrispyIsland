@@ -41,6 +41,7 @@ import UploadTray from './UploadTray'
 import type { UploadMode } from './uploads'
 import { useAdminStore, type SaveState } from './useAdminStore'
 import { useUploadQueue } from './useUploadQueue'
+import StorageMeter from './StorageMeter'
 
 interface Props {
   initialTree: Tree
@@ -71,6 +72,14 @@ export default function MobileAdmin({ initialTree, initialRev, uploadMode, user,
   const router = useRouter()
   const { tree, apply, save, error, pending } = useAdminStore(initialTree, initialRev, readOnly)
   const uploads = useUploadQueue(uploadMode, apply)
+  // Storage meter: re-read after a save or when an upload batch finishes.
+  const [storageBump, setStorageBump] = useState(0)
+  useEffect(() => {
+    if (save === 'saved') setStorageBump(b => b + 1)
+  }, [save])
+  useEffect(() => {
+    if (!uploads.busy) setStorageBump(b => b + 1)
+  }, [uploads.busy])
   const [folderId, setFolderId] = useState<string | null>(null)
   const [sheet, setSheet] = useState<Sheet>(null)
   const [reorder, setReorder] = useState(false)
@@ -214,6 +223,7 @@ export default function MobileAdmin({ initialTree, initialRev, uploadMode, user,
           {readOnlyReason && <small className="admin-banner-why">Reason (for the developer): {readOnlyReason}</small>}
         </p>
       )}
+      {!readOnly && <StorageMeter bump={storageBump} compact />}
       {save === 'error' && error && <p className="ma-banner error">{error}</p>}
 
       <main className="ma-body">
