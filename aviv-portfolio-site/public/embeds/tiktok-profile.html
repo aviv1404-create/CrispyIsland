@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>TikTok</title>
+<!--
+  TikTok's creator-profile embed, isolated in its own page: embed.js rewrites
+  the DOM, which React shouldn't have to share. The TikTok window on the site
+  loads this in an iframe as /embeds/tiktok-profile.html?u=<username>.
+-->
+<style>
+  html, body { margin: 0; background: #fff; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; }
+  .tiktok-embed { margin: 0 !important; min-width: 0 !important; }
+  /* shown until embed.js swaps in the real profile (or if TikTok can't load) */
+  .tiktok-embed section { padding: 48px 20px; text-align: center; font-size: 14px; color: #555; }
+  .tiktok-embed section a { color: #111; font-weight: 600; text-decoration: none; }
+</style>
+</head>
+<body>
+<div id="mount"></div>
+<script>
+  var u = (new URLSearchParams(location.search).get('u') || '').replace(/[^\w.]/g, '');
+  var href = 'https://www.tiktok.com/@' + u;
+  var mount = document.getElementById('mount');
+  var q = document.createElement('blockquote');
+  q.className = 'tiktok-embed';
+  q.setAttribute('cite', href);
+  q.setAttribute('data-unique-id', u);
+  q.setAttribute('data-embed-type', 'creator');
+  q.style.maxWidth = '720px';
+  q.style.minWidth = '288px';
+  var s = document.createElement('section');
+  var a = document.createElement('a');
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.href = href;
+  a.textContent = '@' + u;
+  s.appendChild(a);
+  q.appendChild(s);
+  mount.appendChild(q);
+  var js = document.createElement('script');
+  js.async = true;
+  js.src = 'https://www.tiktok.com/embed.js';
+  mount.appendChild(js);
+</script>
+</body>
+</html>

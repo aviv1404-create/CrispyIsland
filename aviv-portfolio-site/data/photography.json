@@ -1,0 +1,123 @@
+{
+  "folders": [
+    {
+      "id": "army",
+      "name": "Army",
+      "photos": [
+        {
+          "id": "a1",
+          "src": "https://picsum.photos/seed/army1/800/600",
+          "alt": "Naval operations documentation",
+          "caption": ""
+        },
+        {
+          "id": "a2",
+          "src": "https://picsum.photos/seed/army2/800/600",
+          "alt": "Field documentation",
+          "caption": ""
+        },
+        {
+          "id": "a3",
+          "src": "https://picsum.photos/seed/army3/800/600",
+          "alt": "Operational photography",
+          "caption": ""
+        },
+        {
+          "id": "a4",
+          "src": "https://picsum.photos/seed/army4/800/600",
+          "alt": "Military documentation",
+          "caption": ""
+        },
+        {
+          "id": "a5",
+          "src": "https://picsum.photos/seed/army5/800/600",
+          "alt": "Naval activity",
+          "caption": ""
+        },
+        {
+          "id": "a6",
+          "src": "https://picsum.photos/seed/army6/800/600",
+          "alt": "Field photography",
+          "caption": ""
+        },
+        {
+          "id": "1784292003288",
+          "src": "/uploads/1784292000189-y1imx692kw.jpg",
+          "alt": "",
+          "caption": ""
+        }
+      ]
+    },
+    {
+      "id": "concerts",
+      "name": "Concerts",
+      "photos": [
+        {
+          "id": "c1",
+          "src": "https://picsum.photos/seed/concert1/800/600",
+          "alt": "Live performance",
+          "caption": ""
+        },
+        {
+          "id": "c2",
+          "src": "https://picsum.photos/seed/concert2/800/600",
+          "alt": "Stage lights",
+          "caption": ""
+        },
+        {
+          "id": "c3",
+          "src": "https://picsum.photos/seed/concert3/800/600",
+          "alt": "Concert photography",
+          "caption": ""
+        },
+        {
+          "id": "c4",
+          "src": "https://picsum.photos/seed/concert4/800/600",
+          "alt": "Artist on stage",
+          "caption": ""
+        }
+      ]
+    },
+    {
+      "id": "fashion",
+      "name": "Fashion",
+      "photos": [
+        {
+          "id": "f1",
+          "src": "https://picsum.photos/seed/fashion1/800/1000",
+          "alt": "Fashion editorial",
+          "caption": ""
+        },
+        {
+          "id": "f2",
+          "src": "https://picsum.photos/seed/fashion2/800/1000",
+          "alt": "Fashion shoot",
+          "caption": ""
+        },
+        {
+          "id": "f3",
+          "src": "https://picsum.photos/seed/fashion3/800/1000",
+          "alt": "Editorial photography",
+          "caption": ""
+        },
+        {
+          "id": "f4",
+          "src": "https://picsum.photos/seed/fashion4/800/1000",
+          "alt": "Fashion",
+          "caption": ""
+        },
+        {
+          "id": "f5",
+          "src": "https://picsum.photos/seed/fashion5/800/1000",
+          "alt": "Style",
+          "caption": ""
+        }
+      ]
+    },
+    {
+      "id": "1784295100407",
+      "name": "NEW TEST",
+      "photos": []
+    }
+  ]
+}

@@ -1,0 +1,189 @@
+{
+  "folders": [
+    {
+      "id": "photography",
+      "name": "Photography",
+      "slug": "photography",
+      "parentId": null,
+      "position": 0,
+      "visible": true,
+      "system": true
+    },
+    {
+      "id": "army",
+      "name": "Naval",
+      "slug": "naval",
+      "parentId": "photography",
+      "position": 0,
+      "visible": true
+    },
+    {
+      "id": "concerts",
+      "name": "Music",
+      "slug": "music",
+      "parentId": "photography",
+      "position": 1,
+      "visible": true
+    },
+    {
+      "id": "fashion",
+      "name": "Fashion",
+      "slug": "fashion",
+      "parentId": "photography",
+      "position": 2,
+      "visible": true
+    },
+    {
+      "id": "1784295100407",
+      "name": "35mm",
+      "slug": "35mm",
+      "parentId": "photography",
+      "position": 3,
+      "visible": true
+    },
+    {
+      "id": "cinema",
+      "name": "Cinema",
+      "slug": "cinema",
+      "parentId": null,
+      "position": 1,
+      "visible": true,
+      "system": true
+    },
+    {
+      "id": "shot",
+      "name": "DOP",
+      "slug": "dop",
+      "parentId": "cinema",
+      "position": 0,
+      "visible": true
+    },
+    {
+      "id": "directed",
+      "name": "Directed",
+      "slug": "directed",
+      "parentId": "cinema",
+      "position": 1,
+      "visible": true
+    },
+    {
+      "id": "produced",
+      "name": "Produced",
+      "slug": "produced",
+      "parentId": "cinema",
+      "position": 2,
+      "visible": true
+    },
+    {
+      "id": "commercial",
+      "name": "Commercial",
+      "slug": "commercial",
+      "parentId": null,
+      "position": 2,
+      "visible": true,
+      "system": true
+    },
+    {
+      "id": "general",
+      "name": "General",
+      "slug": "general",
+      "parentId": "commercial",
+      "position": 0,
+      "visible": true
+    },
+    {
+      "id": "mt36qfcf1",
+      "name": "Naval 1",
+      "slug": "naval-1",
+      "parentId": "army",
+      "position": 0,
+      "visible": true
+    }
+  ],
+  "items": [
+    {
+      "id": "m1",
+      "folderId": "shot",
+      "position": 0,
+      "title": "Untitled Film I",
+      "caption": "",
+      "tags": [],
+      "alt": "Untitled Film I",
+      "kind": "film",
+      "posterSrc": "https://picsum.photos/seed/film1/400/600",
+      "videoUrl": "",
+      "duration": "12:30",
+      "year": 2024,
+      "director": "",
+      "producer": "",
+      "cinematographer": "",
+      "editor": "",
+      "productionCompany": "",
+      "awards": [],
+      "stills": []
+    },
+    {
+      "id": "m2",
+      "folderId": "shot",
+      "position": 1,
+      "title": "Untitled Film II",
+      "caption": "",
+      "tags": [],
+      "alt": "Untitled Film II",
+      "kind": "film",
+      "posterSrc": "https://picsum.photos/seed/film2/400/600",
+      "videoUrl": "",
+      "duration": "8:45",
+      "year": 2024,
+      "director": "",
+      "producer": "",
+      "cinematographer": "",
+      "editor": "",
+      "productionCompany": "",
+      "awards": [],
+      "stills": []
+    },
+    {
+      "id": "m3",
+      "folderId": "directed",
+      "position": 0,
+      "title": "Untitled Film III",
+      "caption": "",
+      "tags": [],
+      "alt": "Untitled Film III",
+      "kind": "film",
+      "posterSrc": "https://picsum.photos/seed/film3/400/600",
+      "videoUrl": "",
+      "duration": "22:00",
+      "year": 2023,
+      "director": "",
+      "producer": "",
+      "cinematographer": "",
+      "editor": "",
+      "productionCompany": "",
+      "awards": [],
+      "stills": []
+    },
+    {
+      "id": "m4",
+      "folderId": "produced",
+      "position": 0,
+      "title": "Untitled Film IV",
+      "caption": "",
+      "tags": [],
+      "alt": "Untitled Film IV",
+      "kind": "film",
+      "posterSrc": "https://picsum.photos/seed/film4/400/600",
+      "videoUrl": "",
+      "duration": "5:20",
+      "year": 2023,
+      "director": "",
+      "producer": "",
+      "cinematographer": "",
+      "editor": "",
+      "productionCompany": "",
+      "awards": [],
+      "stills": []
+    }
+  ]
+}
