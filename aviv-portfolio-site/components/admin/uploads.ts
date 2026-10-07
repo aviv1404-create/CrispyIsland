@@ -68,6 +68,16 @@ export async function prepareFile(file: File): Promise<PreparedFile> {
   }
 }
 
+/** A video for the TV: mp4, webm or mov, sent as-is. */
+export function prepareVideo(file: File): PreparedFile {
+  const type = file.type || (/\.mov$/i.test(file.name) ? 'video/quicktime' : /\.webm$/i.test(file.name) ? 'video/webm' : /\.mp4$/i.test(file.name) ? 'video/mp4' : '')
+  if (!/^video\/(mp4|webm|quicktime)$/i.test(type)) {
+    throw new Error(`Not a supported video type (${file.type || 'unknown'}). Use MP4, MOV or WebM.`)
+  }
+  if (file.size > 1024 * 1024 * 1024) throw new Error('Video is larger than 1 GB — upload it to YouTube and paste the link instead.')
+  return { blob: file, name: file.name, type }
+}
+
 const safeName = (name: string) => {
   const ext = name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
   return `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`

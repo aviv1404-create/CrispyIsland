@@ -33,6 +33,10 @@ export default function SecretLogin({ onClose, demoUrl }: { onClose: () => void;
       setTimeout(() => window.open(demoUrl, '_blank', 'noopener'), 500)
       return
     }
+    // Open the admin's tab now, while this still counts as the click, so pop-up
+    // blockers allow it; it's pointed at /admin once the code checks out. This
+    // tab (and the music) keeps going.
+    const tab = window.open('', '_blank')
     const res = await fetch('/api/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -40,8 +44,12 @@ export default function SecretLogin({ onClose, demoUrl }: { onClose: () => void;
     }).catch(() => null)
     if (res?.ok) {
       setState('ok')
-      window.location.assign('/admin')
+      if (tab) {
+        tab.location.href = '/admin'
+        setTimeout(onClose, 600)
+      } else window.location.assign('/admin') // pop-ups blocked: go in this tab
     } else {
+      tab?.close()
       setState('wrong')
       setCode('')
       input.current?.focus()

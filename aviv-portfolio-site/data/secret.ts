@@ -11,6 +11,32 @@ export const ODDS = 4
 /** true = show the pop-up on every visit (for testing / previews). */
 export const ALWAYS = false
 
+/**
+ * The page's look: 'castle' = the 90s fantasy-castle / MMO style (stone
+ * frames, a night castle behind, a stone tab menu); 'classic' = the original
+ * blue box on the goblin wallpaper. Visitors can also flip it with the small
+ * switch at the top of the page (remembered in their browser).
+ */
+export const THEME: 'castle' | 'classic' = 'castle'
+
+/** Pictures for the castle look (public/secret/castle/). */
+export const CASTLE = {
+  background: '/secret/castle/castle-night.png',
+  door: '/secret/castle/door-gargoyles.png',
+  wizard: '/secret/castle/wizard.png',
+  helmet: '/secret/castle/helmet.png',
+  knight: '/secret/castle/knight-horse.png',
+  knightSmall: '/secret/castle/knight-small.png',
+  sword: '/secret/castle/sword.png',
+  weaponFrame: '/secret/castle/weapon-frame.png',
+  tunnel: '/secret/castle/tunnel.png',
+  archway: '/secret/castle/archway.png',
+  chest: '/secret/castle/chest-small.png',
+  chestPearls: '/secret/castle/chest-pearls.png',
+  doorIcon: '/secret/castle/door-icon.png',
+  doorwayIcon: '/secret/castle/doorway-icon.png',
+}
+
 /** The pop-up on the desktop: the goblin GIF runs in and waits to be clicked. */
 export const BUBBLE = {
   image: '/secret/troll-cutout.gif',

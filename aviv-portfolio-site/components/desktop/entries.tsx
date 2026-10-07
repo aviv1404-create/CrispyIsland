@@ -48,6 +48,7 @@ export function folderEntry(
       ...(winId ? [{ label: 'Open in New Window', onSelect: () => api.open(spec, { newWindow: true }) }] : []),
       { separator: true },
       { label: 'Get Info', onSelect: () => api.open({ kind: 'info', target: { type: 'folder', id: folder.id } }) },
+      ...(api.isAdmin ? [{ label: 'Change Icon…', onSelect: () => api.editIcon({ type: 'folder', id: folder.id }) }] : []),
       { label: 'Copy Link', onSelect: () => api.copyLink(href) },
     ],
   }
@@ -71,6 +72,7 @@ export function itemEntry(tree: Tree, item: Item, api: DesktopApi): FloatEntry {
         { separator: true },
         { label: 'Get Info', onSelect: info },
         { label: 'Copy Link', onSelect: copy },
+        ...(api.isAdmin ? [{ label: 'Change Icon…', onSelect: () => api.editIcon({ type: 'item', id: item.id }) }] : []),
       ],
     }
   }
@@ -95,6 +97,7 @@ export function itemEntry(tree: Tree, item: Item, api: DesktopApi): FloatEntry {
       { separator: true },
       { label: 'Get Info', onSelect: info },
       { label: 'Copy Link', onSelect: copy },
+        ...(api.isAdmin ? [{ label: 'Change Icon…', onSelect: () => api.editIcon({ type: 'item', id: item.id }) }] : []),
     ],
   }
 }

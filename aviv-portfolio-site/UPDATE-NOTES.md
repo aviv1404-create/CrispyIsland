@@ -5,6 +5,34 @@ desktop-style interface. Copy it over the existing project, then follow the
 steps below. Nothing here touches content: the photos/films in Vercel Blob are
 read the same way as before.
 
+## URGENT: why the admin is read-only (found, Oct 7)
+
+**Cause: the Blob store is suspended for going over the Hobby plan's free usage.**
+In Aviv's Vercel account (team `crispyisland`, project `site`) the store
+`crispyisland-content` shows **status: limits-exceeded-suspended** since
+**Oct 1, 2026**. Nothing is lost (11 blobs, ~13 MB), but while it's suspended
+the server can't read it, so `loadTree()` reports an error and the admin locks
+itself on purpose.
+
+Hobby includes only **2,000 Blob "advanced operations" a month** (every
+`put()` and `list()`). The old code ran `list()` on **every page view**
+(layout + page both called `getTree()`), and the visit counter did a `put()`
+per visit. A few hundred visitors a month were enough.
+
+**To get editing back, one of:**
+- Vercel → Settings → Billing → **start the Pro trial / upgrade to Pro**. This
+  lifts the cap right away. Aviv has to do this himself.
+- Or wait. Vercel says a Hobby store unlocks ~30 days after the limit was hit
+  (around Oct 31).
+
+**This update stops it happening again** (see "Blob usage fix" below). Deploy
+it either way; without it the store will hit the limit again next month.
+
+**Optional:** to turn the private visit counter back on, add **Upstash for
+Redis** from the Vercel Marketplace (free tier) to the project. It sets
+`KV_REST_API_URL` / `KV_REST_API_TOKEN`, then redeploy. Without it the counter
+is simply off (the About window says so to the admin).
+
 ## Before you deploy
 
 1. **Delete these four files** from the existing project. They are no longer
@@ -30,6 +58,29 @@ Not included on purpose: `node_modules`, `.next`, `.env*` (keep your own),
 `data/tree.local.json`, `public/uploads` (local-dev content), `.git`, `.vercel`.
 
 ## What changed
+
+**Blob usage fix (newest).** Public pages no longer touch the Blob store on
+every request:
+- `lib/content.ts`: `getTree()` now reads through Next's Data Cache
+  (`unstable_cache`, tag `content-tree`, refreshed once a day). `saveTree()`
+  calls `revalidateTag('content-tree', { expire: 0 })`, so admin edits still go
+  live on the next page load. If the store fails, public pages show the seed
+  and back off for 5 minutes instead of retrying on every request.
+  `loadTree()` (fresh, uncached) is now used only by `/admin` and saves.
+- `app/api/admin/route.ts`: `GET` gives a fresh store read only to the signed-in
+  admin; everyone else gets the cached tree.
+- `lib/guestbook.ts`: the entry list is cached the same way (tag `guestbook`),
+  invalidated when someone signs or an entry is deleted; delete no longer
+  lists first.
+- `lib/visits.ts`: no more Blob fallback. Counts only with Upstash Redis;
+  otherwise off. `GET /api/visits` answers 501 `{off:true}` and
+  `VisitCounter` explains it to the admin.
+- Expected usage now: a few dozen advanced operations a month (admin opens and
+  saves, uploads, guestbook posts), well inside Hobby.
+- **Run `npm run build` before deploying.** These files were syntax-checked but
+  not built here (`revalidateTag(tag, profile)` is the Next 16 two-argument
+  form).
+
 
 **Desktop interface.** `app/layout.tsx` now renders `components/desktop/Desktop.tsx`
 around every page except `/admin`. Folders, photos, films, About, Search and
@@ -170,6 +221,19 @@ is a fourth view mode in every folder window (`'flow'` in `useViewMode.ts`).
 - Music: starts by itself at 50% (`START_VOLUME` in `data/music.ts`); where the
   browser blocks sound it starts on the first click/key. A TV tape pauses it
   (`crispy:tv-play`), and `crispy:tv-stop` fires when the tape stops.
+- Secret layer 2: **Crispy's Secret Pirate Port** at `/secret/pirate`
+  (`app/secret/pirate/page.tsx`, `components/secret/PiratePage.tsx`, content in
+  `data/pirate.ts`, GIFs in `public/secret/pirate/`). Reached from a "go deeper"
+  link at the bottom of the dungeon page. No-index like /secret. Loads the
+  Restyled flatter/90s (no web font any more); the Shipyard links go to
+  BrickLink catalog pages.
+  Has its own "Pirate Pack" cursors (`PIRATE_CURSORS` in `data/pirate.ts`,
+  48px PNGs in `public/secret/pirate/cursor/`).
+- Pirate pop-up: pressing Play on the DOS game fires `crispy:game-play`;
+  `PirateBubble.tsx` then has a 1-in-2 chance (`PIRATE_POPUP` in `data/pirate.ts`)
+  to drop the skull GIF onto the desktop 6 s later, linking to /secret/pirate.
+  `?pirate` in the URL forces it. The goblin's drag/close logic moved into a
+  shared `GifPopup` in `SecretBubble.tsx`.
 - Dungeon guestbook: `components/secret/Guestbook.tsx`, API
   `app/api/guestbook/route.ts`, storage `lib/guestbook.ts` — one Vercel Blob per
   entry under `guestbook/` (no new env vars). Name + message, no login;
@@ -182,6 +246,130 @@ is a fourth view mode in every folder window (`'flow'` in `useViewMode.ts`).
   the first edit, the bundled list in `data/events.ts` is shown. Note:
   `restoreDeleted`, `deleteFolder`, `deleteItems` and `publicTree` now spread
   `...tree` so the new field survives.
+
+## First-visit guide (newest)
+
+- A small stick-figure guide (`components/desktop/Guide.tsx`, text and settings
+  in `data/guide.ts`, GIFs in `public/guide/`). Computers only. On a visitor's
+  first visit (localStorage `guide:seen`), 5 s after the site opens he walks
+  up in the bottom-left corner and says hi. Only if clicked does he do a short
+  tour: he walks to the folders, the TV, the player etc. (positions found via
+  the new `data-entry` attribute on desktop icons) and talks in speech bubbles
+  with Next / × — he never blocks the page. Right-click the desktop → "Show the
+  guide" brings him back; `?guide` in the URL forces him for testing.
+
+## Change icons from the desktop
+
+- Signed-in admins get **"Change Icon…"** when right-clicking a folder or a
+  file on the desktop (or inside folder windows). It opens the same icon
+  picker as /admin; on Done the change is saved through `PUT /api/admin`
+  (`components/desktop/adminEdit.ts`: read latest tree → apply → save, retry
+  once on a 409 conflict) and the desktop refreshes with `router.refresh()`,
+  so the music keeps playing. Visitors never see the menu item, and the API
+  checks the admin session anyway. (`DeskIconEditor.tsx`, `entries.tsx`,
+  `editIcon` on `DesktopApi`.) Needs the admin read-only issue fixed to save.
+
+## Admin in a new tab + pirate banner
+
+- The desktop's Admin icon and the hidden code box now open /admin in a **new
+  tab**, so the music keeps playing on the site. (`Desktop.tsx`,
+  `SecretLogin.tsx` — the code box opens the tab on submit, before the
+  password check, so pop-up blockers allow it; it closes again on a wrong
+  code, and falls back to the same tab if pop-ups are blocked.)
+- Pirate page: an old 468×60 "X marks the spot!" banner GIF between the page
+  and the sea (`public/secret/pirate/banner-x-marks.gif`).
+
+## Dungeon page: castle look
+
+- `/secret` now has a 90s fantasy-castle / browser-MMO look: night castle
+  behind, stone-framed dark panels, gold headings, a stone tab menu (Works /
+  Archive / Guestbook / Go deeper), wizard + knight art, treasure chest, a
+  little knight walking at the bottom. Pictures in `public/secret/castle/`.
+- **Reversible**: `THEME` in `data/secret.ts` — `'castle'` (default) or
+  `'classic'` for the original blue/goblin page. There's also a small
+  "classic look / castle look" switch at the top right of the page
+  (remembered per browser). All castle styling is scoped under `.s90.castle`.
+- Castle title is static, in the pixel blackletter font **Jacquard 24**
+  (Google Fonts, loaded by `SecretPage.tsx` only in the castle look).
+
+## Game keys on phones
+
+- `DosPlayer.tsx`: on touch screens / ≤700px, once the game runs, three 80s
+  keycaps appear under the screen — YES (F / כ), NO (K / ל), ENTER — plus a
+  tiny ESC key in the screen's corner. They send keys through js-dos's
+  CommandInterface (`onEvent('ci-ready')` → `ci.sendKeyEvent`, codes F=70,
+  K=75, Enter=257, Esc=256), falling back to synthetic keyboard events.
+  Hidden on computers. Please test on a real phone.
+
+## Default icon layout
+
+- On computers the desktop icons now open in Aviv's arrangement
+  (`DESK_LAYOUT` in `data/desktop.ts`, applied via the new `presets` prop on
+  `FloatField`): a 2×3 block top-right (Cinema/Commercial, About/Photography,
+  TV/Events), Instagram + TikTok bottom-left, סוחר הים bottom-right. Spots are
+  measured from the edges, so they adapt to any screen size. Icons can still be
+  dragged; "Clean Up" returns them here. Visitors who already dragged icons
+  keep their own arrangement (localStorage) until they Clean Up.
+- The music player now starts top-left (`.mp { top: 40px }`) instead of
+  bottom-left. Phones unchanged.
+
+## Phone fixes
+
+- Phones (≤700px): the music player starts folded into a small bar at the
+  bottom (logo, scrolling title, play/pause, next). Tapping the bar opens the
+  full player; "▼ hide player" folds it again. The YouTube player stays
+  mounted (moved off-screen) so music keeps playing. (`MediaPlayer.tsx`,
+  `.mp.mobile.mini` / `.mp-pill` CSS.)
+- Header on phones: the engraved smiley mark is hidden (`.nav-mark`), the logo
+  is smaller and the four tabs share the width evenly (icons hidden under 440px).
+- Desktop icons on phones: smaller cells (84×78), 44px pictures, one-line labels,
+  and bottom padding so the player bar never covers them.
+- Please check on a real iPhone and Android after deploy.
+
+## Private visit counter
+
+- When signed in as admin, the About window shows a small red LED "VISITS"
+  counter (click it for today / this week / all time and a 14-day chart).
+  Nobody else sees it; the numbers come from admin-only `GET /api/visits`.
+- `VisitPing` (in `Desktop.tsx`) sends one `POST /api/visits` per browser tab
+  session. Bots (by user agent) and the signed-in admin aren't counted. No IP,
+  email or cookie is stored — only a count per day. (Visitors don't sign in,
+  so there's no way to see who they are, and we don't try.)
+- Storage (`lib/visits.ts`): if `KV_REST_API_URL` + `KV_REST_API_TOKEN` exist
+  (Vercel Marketplace → **Upstash for Redis**, free tier), it uses atomic
+  INCR — **recommended**. Without them it falls back to one tiny Vercel Blob
+  per visit under `visits/<day>/`, counted by listing, which uses a Blob write
+  per visit — fine for low traffic, but connect Upstash if the site gets busy.
+- Local dev: `data/visits.local.json` (gitignored).
+
+## TV channels in the admin + tab title
+
+- Browser tab now says **Crispy Island** (`app/layout.tsx`); every page title
+  ends in "— Crispy Island" instead of "— Aviv Shmuelof".
+- TV channels moved into the content tree (`Tree.tv = { tapes: TvTape[] }`,
+  types in `lib/types.ts`, normalised in `lib/normalize.ts`). Edited in /admin →
+  **TV** (`components/admin/TvEditor.tsx`, both layouts): add/reorder/delete
+  channels, name/colour, play order (in order / shuffle), videos as YouTube or
+  Vimeo links or uploaded files. Until the first edit, `data/tv.ts` is used.
+- `TvWindow.tsx` plays a channel's videos one after another and loops; a
+  shuffled channel reshuffles each loop. End-of-video detection: YouTube via
+  postMessage (`enablejsapi=1`), Vimeo via its `finish` event, files via
+  `<video onEnded>`. New ⏭ knob skips to the next video.
+- Uploads now accept video (mp4/webm/mov) up to 1 GB through the client
+  upload route (`app/api/upload/client/route.ts`, `prepareVideo` in
+  `components/admin/uploads.ts`). Photo uploads are unchanged.
+
+## Green ticker under the menu
+
+- `components/Ticker.tsx` (mounted in `app/layout.tsx` under `<NavBar />`):
+  NYSE-style green LED strip. Text comes from the content tree
+  (`Tree.ticker = { on, messages[] }`, normalised in `lib/normalize.ts`) and is
+  edited in /admin → **Ticker** (`components/admin/TickerEditor.tsx`, both admin
+  layouts). With no messages it shows placeholder stock quotes from
+  `data/ticker.ts` whose prices drift (simulated, not market data). Speed and
+  direction are in `data/ticker.ts`. Hidden on /secret and /admin.
+- `Desktop.tsx` now places the desktop under the ticker too (`--desk-top`).
+- Needs the admin's read-only problem above fixed before messages can be saved.
 
 ## Things to check after deploy
 

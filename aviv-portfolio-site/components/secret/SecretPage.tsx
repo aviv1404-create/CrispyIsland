@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Guestbook from './Guestbook'
-import { ARCHIVE, ART, CURSORS, DECOR, GIF, GIF_COUNT, PAGE, TILE, WORKS } from '@/data/secret'
+import { PIRATE_ART } from '@/data/pirate'
+import { ARCHIVE, ART, CASTLE, CURSORS, DECOR, GIF, GIF_COUNT, PAGE, THEME, TILE, WORKS } from '@/data/secret'
 
 /** Small seeded random, so the scatter is the same on server and client. */
 function scatter(n: number) {
@@ -20,6 +21,7 @@ function scatter(n: number) {
 }
 const SPOTS = scatter(GIF_COUNT)
 const COUNT_KEY = 'secret:visits'
+const THEME_KEY = 'secret:theme'
 
 /** A section heading in the old style, flanked by two of Aviv's drawings. */
 function H2({ children, icon }: { children: React.ReactNode; icon: string }) {
@@ -38,6 +40,22 @@ function H2({ children, icon }: { children: React.ReactNode; icon: string }) {
  */
 export default function SecretPage() {
   const [visits, setVisits] = useState<number | null>(null)
+  const [theme, setTheme] = useState<'castle' | 'classic'>(THEME)
+  const castle = theme === 'castle'
+  useEffect(() => {
+    try {
+      const t = localStorage.getItem(THEME_KEY)
+      if (t === 'castle' || t === 'classic') setTheme(t)
+    } catch {}
+  }, [])
+  const flip = () => {
+    const next = castle ? 'classic' : 'castle'
+    setTheme(next)
+    try {
+      localStorage.setItem(THEME_KEY, next)
+    } catch {}
+  }
+  const icon = castle ? CASTLE.doorIcon : ART.heart
 
   useEffect(() => {
     try {
@@ -51,8 +69,9 @@ export default function SecretPage() {
 
   return (
     <div
-      className="s90"
+      className={`s90${castle ? ' castle' : ''}`}
       style={{
+        ['--castle-bg' as string]: `url(${CASTLE.background})`,
         cursor: CURSORS.normal,
         ['--cur-link' as string]: CURSORS.link,
         ['--cur-text' as string]: CURSORS.text,
@@ -61,9 +80,14 @@ export default function SecretPage() {
         ['--cur-no' as string]: CURSORS.unavailable,
         ['--gif' as string]: `url(${GIF})`,
         ['--tile' as string]: `${TILE}px`,
-        ['--bullet' as string]: `url(${ART.heart})`,
+        ['--bullet' as string]: `url(${castle ? CASTLE.doorwayIcon : ART.heart})`,
       }}
     >
+      {/* Pixel blackletter for the castle-look title (falls back to a serif). */}
+      {castle && <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jacquard+24&display=swap" precedence="default" />}
+      <button type="button" className="s90-skin" onClick={flip} title="Change the page's look">
+        {castle ? '☺ classic look' : '⚔ castle look'}
+      </button>
       {SPOTS.length > 0 && (
       <div className="s90-gifs" aria-hidden="true">
         {SPOTS.map((s, i) => (
@@ -79,23 +103,51 @@ export default function SecretPage() {
       )}
 
       <div className="s90-main">
-        <div className="s90-logo">
-          <img src={ART.crystal} alt="" className="s90-bounce" />
-          <img src={ART.logo} alt="Crispy" className="s90-logo-bubble" />
-          <img src={ART.crystal} alt="" className="s90-bounce" style={{ animationDelay: '-0.6s' }} />
-        </div>
+        {castle ? (
+          <div className="s90-gate">
+            <img src={CASTLE.door} alt="A dungeon door between two gargoyles" className="s90-gate-door" />
+            <img src={ART.logo} alt="Crispy" className="s90-gate-logo" />
+          </div>
+        ) : (
+          <div className="s90-logo">
+            <img src={ART.crystal} alt="" className="s90-bounce" />
+            <img src={ART.logo} alt="Crispy" className="s90-logo-bubble" />
+            <img src={ART.crystal} alt="" className="s90-bounce" style={{ animationDelay: '-0.6s' }} />
+          </div>
+        )}
 
-        <h1 className="s90-title">
-          {PAGE.title.split('').map((ch, i) => (
-            <span key={i} style={{ animationDelay: `${i * -0.08}s` }}>
-              {ch === ' ' ? ' ' : ch}
-            </span>
-          ))}
-        </h1>
+        {castle ? (
+          // castle look: one static line of pixel blackletter
+          <h1 className="s90-title s90-title-castle">{PAGE.title}</h1>
+        ) : (
+          <h1 className="s90-title">
+            {PAGE.title.split('').map((ch, i) => (
+              <span key={i} style={{ animationDelay: `${i * -0.08}s` }}>
+                {ch === ' ' ? '\u00a0' : ch}
+              </span>
+            ))}
+          </h1>
+        )}
 
         <div className="s90-marquee" aria-label={PAGE.marquee}>
           <span>{PAGE.marquee}</span>
         </div>
+
+        {castle && (
+          <nav className="s90-tabs" aria-label="Dungeon menu">
+            {[
+              { href: '#works', img: CASTLE.sword, label: 'Works' },
+              { href: '#archive', img: CASTLE.weaponFrame, label: 'Archive' },
+              { href: '#guestbook', img: CASTLE.chest, label: 'Guestbook' },
+              { href: '#deeper', img: CASTLE.tunnel, label: 'Go deeper' },
+            ].map(t => (
+              <a key={t.href} href={t.href} className="s90-tab">
+                <img src={t.img} alt="" />
+                <span>{t.label}</span>
+              </a>
+            ))}
+          </nav>
+        )}
 
         <hr className="s90-hr" />
 
@@ -103,7 +155,7 @@ export default function SecretPage() {
           <tbody>
             <tr>
               <td className="s90-face">
-                <img src={ART.faceLeft} alt="" />
+                <img src={castle ? CASTLE.wizard : ART.faceLeft} alt="" />
               </td>
               <td>
                 <p className="s90-intro">
@@ -114,13 +166,14 @@ export default function SecretPage() {
                 </div>
               </td>
               <td className="s90-face">
-                <img src={ART.faceRight} alt="" />
+                <img src={castle ? CASTLE.helmet : ART.faceRight} alt="" />
               </td>
             </tr>
           </tbody>
         </table>
 
-        <H2 icon={ART.heart}>CRISPY WORKS</H2>
+        <span id="works" className="s90-anchor" />
+        <H2 icon={icon}>CRISPY WORKS</H2>
         <table className="s90-grid">
           <tbody>
             {Array.from({ length: Math.ceil(WORKS.length / 3) }, (_, r) => (
@@ -154,7 +207,8 @@ export default function SecretPage() {
 
         <hr className="s90-hr" />
 
-        <H2 icon={ART.crystal}>THE ARCHIVE</H2>
+        <span id="archive" className="s90-anchor" />
+        <H2 icon={castle ? CASTLE.doorIcon : ART.crystal}>THE ARCHIVE</H2>
         {ARCHIVE.map(group => (
           <div key={group.heading} className="s90-group">
             <h3>
@@ -185,18 +239,32 @@ export default function SecretPage() {
 
         <hr className="s90-hr" />
 
-        <H2 icon={ART.heart}>GUESTBOOK</H2>
+        <span id="guestbook" className="s90-anchor" />
+        <H2 icon={icon}>GUESTBOOK</H2>
         <Guestbook icon={ART.smileyWhite} />
 
         <hr className="s90-hr" />
 
+        {castle && (
+          <div className="s90-treasure" aria-hidden="true">
+            <img src={CASTLE.knight} alt="" className="s90-knight" />
+            <img src={CASTLE.chestPearls} alt="" className="s90-chest" />
+          </div>
+        )}
+
         <div className="s90-counter">
-          <img src={ART.heart} alt="" height={34} />
+          <img src={castle ? CASTLE.chest : ART.heart} alt="" height={34} />
           You have visited the dungeon
           <span className="s90-digits">{String(visits ?? 0).padStart(6, '0')}</span>
           times
-          <img src={ART.heart} alt="" height={34} />
+          <img src={castle ? CASTLE.chest : ART.heart} alt="" height={34} />
         </div>
+
+        <span id="deeper" className="s90-anchor" />
+        <a href="/secret/pirate" className="s90-hatch" title="???">
+          <img src={castle ? CASTLE.archway : PIRATE_ART.ship} alt="" />
+          ↓ go deeper: the secret pirate port ↓
+        </a>
 
         <div className="s90-buttons">
           <a href="/" className="s90-btn">
@@ -204,6 +272,7 @@ export default function SecretPage() {
           </a>
         </div>
 
+        {castle && <img src={CASTLE.knightSmall} alt="" className="s90-walker" aria-hidden="true" />}
         <p className="s90-foot">
           <img src={ART.smileyWhite} alt="" height={14} /> Best viewed at 800x600 · {PAGE.updated} · © Crispy
         </p>

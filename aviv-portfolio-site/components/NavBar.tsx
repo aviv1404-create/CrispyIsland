@@ -60,6 +60,7 @@ export default function NavBar() {
         */}
         <div
           aria-hidden="true"
+          className="nav-mark"
           style={{
             position: 'absolute',
             /* Centred on the full banner height, not the name strip: the tab

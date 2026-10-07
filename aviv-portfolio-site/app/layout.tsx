@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import NavBar from '@/components/NavBar'
+import Ticker from '@/components/Ticker'
 import Desktop from '@/components/desktop/Desktop'
 import { getTree, publicTree } from '@/lib/content'
 import { currentAdmin } from '@/lib/session'
 
 export const metadata: Metadata = {
-  title: 'Aviv Shmuelof',
+  title: 'Crispy Island',
   description: 'Filmmaker, photographer, and visual artist.',
 }
 
@@ -22,6 +23,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" data-scroll-behavior="smooth">
       <body style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <NavBar />
+        <Ticker settings={tree.ticker} />
         <main style={{ flex: 1 }}>
           <Desktop tree={publicTree(tree)} isAdmin={!!admin}>
             {children}

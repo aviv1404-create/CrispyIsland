@@ -421,6 +421,10 @@ export default function MediaPlayer({
 
   // Phones get the narrowest skin at the medium size, docked at the bottom.
   const shownSkin: SkinId = isMobile ? MOBILE_SKIN : skin
+  // Phones: the player starts folded into a small bar so it doesn't cover the
+  // screen; the full player opens on demand. The video keeps playing either way.
+  const [folded, setFolded] = useState(true)
+  const mini = isMobile && folded
   const shownSize: SizeId = isMobile ? 'm' : size
   const scale = SIZES.find(x => x.id === shownSize)!.scale
   const layout = skinLayout(shownSkin)
@@ -457,7 +461,7 @@ export default function MediaPlayer({
   return (
     <div
       ref={ref}
-      className={`mp pix-skin${isMobile ? ' mobile' : ''}${playing ? ' is-playing' : ''}${muted ? ' is-muted' : ''}`}
+      className={`mp pix-skin${isMobile ? ' mobile' : ''}${mini ? ' mini' : ''}${playing ? ' is-playing' : ''}${muted ? ' is-muted' : ''}`}
       style={{
         ['--s' as string]: scale,
         ['--w' as string]: layout.w,
@@ -486,6 +490,27 @@ export default function MediaPlayer({
         </div>
         <Skin c={c} />
       </div>
+      {isMobile && !mini && (
+        <button type="button" className="mp-fold" onClick={() => setFolded(true)} aria-label="Fold the player into a small bar">
+          ▼ hide player
+        </button>
+      )}
+      {mini && (
+        <div className="mp-pill" role="group" aria-label="Music">
+          <button type="button" className="mp-pill-open" onClick={() => setFolded(false)} aria-label="Open the full player" title="Open player">
+            <span className="mp-pill-logo" aria-hidden="true" />
+            <span className="mp-pill-title">
+              <span className={lcd.length > 18 ? 'scroll' : ''}>{lcd}</span>
+            </span>
+          </button>
+          <button type="button" className="mp-pill-btn" onClick={playPause} disabled={status === 'empty'} aria-label={playing ? 'Pause' : 'Play'}>
+            {playing ? '❚❚' : '▶'}
+          </button>
+          <button type="button" className="mp-pill-btn" onClick={next} disabled={!(queue.length > 1 || queue.some(k => !!songAt(k)?.list))} aria-label="Next song">
+            ▶▶
+          </button>
+        </div>
+      )}
     </div>
   )
 }

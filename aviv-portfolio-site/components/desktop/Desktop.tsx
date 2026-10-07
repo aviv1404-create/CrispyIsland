@@ -5,7 +5,12 @@ import BootScreen from './BootScreen'
 import EventsWindow from './windows/EventsWindow'
 import GameWindow from './windows/GameWindow'
 import { GAMES } from '@/data/games'
+import { DESK_LAYOUT } from '@/data/desktop'
 import SecretBubble from './SecretBubble'
+import PirateBubble from './PirateBubble'
+import { VisitPing } from './VisitCounter'
+import DeskIconEditor, { type IconEdit } from './DeskIconEditor'
+import Guide, { GUIDE_EVENT } from './Guide'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import Lightbox from '@/components/Lightbox'
@@ -269,9 +274,10 @@ export default function Desktop({ tree, isAdmin, children }: DesktopProps) {
     if (photos.length) setLook({ photos, index, title })
   }, [])
 
+  const [iconEdit, setIconEdit] = useState<IconEdit | null>(null)
   const api: DesktopApi = useMemo(
-    () => ({ tree, isMobile, open, goBack, replaceSpec, close, quickLook, copyLink, toast }),
-    [tree, isMobile, open, goBack, replaceSpec, close, quickLook, copyLink, toast]
+    () => ({ tree, isAdmin, isMobile, open, goBack, replaceSpec, close, quickLook, copyLink, toast, editIcon: setIconEdit }),
+    [tree, isAdmin, isMobile, open, goBack, replaceSpec, close, quickLook, copyLink, toast]
   )
 
   // Esc closes the front window (Quick Look and menus handle their own Esc first).
@@ -286,17 +292,21 @@ export default function Desktop({ tree, isAdmin, children }: DesktopProps) {
     return () => document.removeEventListener('keydown', onKey)
   }, [passthrough, look, front, close])
 
-  // The desktop sits under the metal header; track its height.
+  // The desktop sits under the metal header (and ticker); track their height.
   const deskRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (passthrough) return
     const header = document.querySelector('header.metal') as HTMLElement | null
     const desk = deskRef.current
     if (!header || !desk) return
-    const sync = () => desk.style.setProperty('--desk-top', `${header.offsetHeight}px`)
+    // …and under the green ticker strip, when it's showing.
+    const ticker = document.querySelector('.tk') as HTMLElement | null
+    const sync = () =>
+      desk.style.setProperty('--desk-top', `${ticker ? ticker.offsetTop + ticker.offsetHeight : header.offsetHeight}px`)
     sync()
     const ro = new ResizeObserver(sync)
     ro.observe(header)
+    if (ticker) ro.observe(ticker)
     return () => ro.disconnect()
   }, [passthrough])
 
@@ -389,7 +399,8 @@ export default function Desktop({ tree, isAdmin, children }: DesktopProps) {
             label: 'Admin',
             icon: <DeskIcon name="lock" />,
             cell: { w: 104, h: 108 },
-            onOpen: () => window.location.assign('/admin'),
+            // A new tab, so the music on the desktop keeps playing.
+            onOpen: () => window.open('/admin', '_blank'),
           } satisfies FloatEntry,
         ]
       : []),
@@ -418,11 +429,13 @@ export default function Desktop({ tree, isAdmin, children }: DesktopProps) {
           entries={deskEntries}
           arrange={isMobile ? 'rows' : 'right-column'}
           draggable={!isMobile}
+          presets={DESK_LAYOUT}
           fill
           className="desktop-icons"
           backgroundMenu={[
             { label: 'About Aviv Shmuelof', onSelect: () => open({ kind: 'about' }) },
             { label: 'Search…', onSelect: () => open({ kind: 'search', q: '' }) },
+            ...(!isMobile ? [{ label: 'Show the guide', onSelect: () => window.dispatchEvent(new Event(GUIDE_EVENT)) }] : []),
           ]}
         />
 
@@ -444,6 +457,10 @@ export default function Desktop({ tree, isAdmin, children }: DesktopProps) {
       </div>
 
       <SecretBubble />
+      <PirateBubble />
+      <VisitPing skip={isAdmin} />
+      <Guide enabled={!isMobile} />
+      {isAdmin && iconEdit && <DeskIconEditor tree={tree} edit={iconEdit} onClose={() => setIconEdit(null)} toast={toast} />}
       <BootScreen />
       {look && (
         <Lightbox

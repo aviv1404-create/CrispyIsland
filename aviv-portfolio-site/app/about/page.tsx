@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'About — Aviv Shmuelof',
+  title: 'About — Crispy Island',
   description: 'Filmmaker, photographer, and visual artist based in Modi’in, Israel.',
 }
 

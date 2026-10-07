@@ -4,6 +4,17 @@ import { useEffect, useRef, useState } from 'react'
 import { JSDOS } from '@/data/games'
 
 type DosHandle = { stop?: () => Promise<void> | void }
+/** js-dos's CommandInterface — only the bit we use. Key codes: letters = ASCII, Enter 257, Esc 256. */
+type DosCI = { sendKeyEvent: (keyCode: number, pressed: boolean) => void }
+
+/** The on-screen keys for phones (the game is played with F, K, Enter and Esc). */
+export const GAME_KEYS = {
+  yes: { code: 70, key: 'f', label: 'YES', letter: 'F', hebrew: 'כ' },
+  no: { code: 75, key: 'k', label: 'NO', letter: 'K', hebrew: 'ל' },
+  enter: { code: 257, key: 'Enter', label: 'ENTER', letter: '↵', hebrew: '' },
+  esc: { code: 256, key: 'Escape', label: 'ESC', letter: 'Esc', hebrew: '' },
+} as const
+type GameKey = keyof typeof GAME_KEYS
 declare global {
   interface Window {
     Dos?: (el: HTMLElement, opts: Record<string, unknown>) => DosHandle
@@ -39,11 +50,30 @@ function loadJsDos(): Promise<void> {
 export default function DosPlayer({ bundle, cover, label }: { bundle: string; cover: string; label: string }) {
   const host = useRef<HTMLDivElement>(null)
   const handle = useRef<DosHandle | null>(null)
+  const ci = useRef<DosCI | null>(null)
+
+  // Press and release a key in the emulator. Falls back to a synthetic
+  // keyboard event if the command interface isn't ready yet.
+  const press = (k: GameKey) => {
+    const { code, key } = GAME_KEYS[k]
+    if (navigator.vibrate) navigator.vibrate(12)
+    if (ci.current) {
+      ci.current.sendKeyEvent(code, true)
+      setTimeout(() => ci.current?.sendKeyEvent(code, false), 90)
+      return
+    }
+    const target = host.current?.querySelector('canvas') ?? window
+    const init = { key, code: key.length === 1 ? `Key${key.toUpperCase()}` : key, bubbles: true }
+    target.dispatchEvent(new KeyboardEvent('keydown', init))
+    setTimeout(() => target.dispatchEvent(new KeyboardEvent('keyup', init)), 90)
+  }
   const [state, setState] = useState<'idle' | 'loading' | 'running' | 'error'>('idle')
   const [error, setError] = useState('')
 
   const start = async () => {
     setState('loading')
+    // lets the pirate skull (PirateBubble) roll its dice
+    window.dispatchEvent(new Event('crispy:game-play'))
     try {
       await loadJsDos()
       if (!host.current || !window.Dos) throw new Error('js-dos did not start')
@@ -54,6 +84,9 @@ export default function DosPlayer({ bundle, cover, label }: { bundle: string; co
         kiosk: true,
         noCloud: true,
         theme: 'dark',
+        onEvent: (event: string, arg?: unknown) => {
+          if (event === 'ci-ready' && arg && typeof (arg as DosCI).sendKeyEvent === 'function') ci.current = arg as DosCI
+        },
       })
       setState('running')
     } catch (e) {
@@ -73,8 +106,13 @@ export default function DosPlayer({ bundle, cover, label }: { bundle: string; co
   )
 
   return (
-    <div className="dos">
+    <div className={`dos${state === 'running' ? ' running' : ''}`}>
       <div ref={host} className="dos-screen" />
+      {state === 'running' && (
+        <button type="button" className="dos-esc" onPointerDown={e => { e.preventDefault(); press('esc') }} aria-label="Escape (go back)">
+          ESC
+        </button>
+      )}
       {state !== 'running' && (
         <div className="dos-cover">
           <img src={cover} alt="" draggable={false} />
@@ -92,6 +130,29 @@ export default function DosPlayer({ bundle, cover, label }: { bundle: string; co
               </button>
             )}
           </div>
+        </div>
+      )}
+      {state === 'running' && (
+        <div className="dos-keys" role="group" aria-label="Game keys">
+          {(['yes', 'no', 'enter'] as const).map(k => {
+            const g = GAME_KEYS[k]
+            return (
+              <button
+                key={k}
+                type="button"
+                className={`keycap keycap-${k}`}
+                onPointerDown={e => {
+                  e.preventDefault()
+                  press(k)
+                }}
+                aria-label={`${g.label} (${g.letter})`}
+              >
+                <span className="keycap-letter">{g.letter}</span>
+                <strong>{g.label}</strong>
+                {g.hebrew && <span className="keycap-he">{g.hebrew}</span>}
+              </button>
+            )
+          })}
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
 import { list, put, del } from '@vercel/blob'
+import { revalidateTag, unstable_cache } from 'next/cache'
 import seed from '@/data/tree.json'
 import type { Tree } from './types'
 
@@ -142,9 +143,44 @@ export async function loadTree(): Promise<TreeLoad> {
   }
 }
 
+// ── Public reads are cached ──────────────────────────
+// Every list() is a billed "advanced operation", and the Hobby plan only
+// includes 2,000 a month. Listing on every page view used them all up and got
+// the store suspended (Oct 2026). Public pages now read the tree through
+// Next's shared Data Cache: the store is listed only after the admin saves
+// (saveTree() invalidates the tag) or once a day as a safety refresh.
+// The admin and saves still read fresh, uncached — that's a handful a month.
+export const TREE_TAG = 'content-tree'
+
+const cachedTree = unstable_cache(
+  async (): Promise<Tree> => {
+    const load = await loadTree()
+    // Throwing keeps failures out of the cache, so a blip isn't stored for a day.
+    if (load.source === 'error') throw new Error(load.error || 'content store unavailable')
+    return load.tree
+  },
+  ['content-tree-v2'],
+  { tags: [TREE_TAG], revalidate: 86_400 }
+)
+
+// While the store is failing, don't retry on every request (each retry is
+// another list()). Back off per server instance and render the seed meanwhile.
+let failedAt = 0
+const BACKOFF = 5 * 60_000
+
 /** Convenience for public pages, which just want something to render. */
 export async function getTree(): Promise<Tree> {
-  return (await loadTree()).tree
+  if (localStoreEnabled()) return (await readLocal()).tree
+  if (failedAt && Date.now() - failedAt < BACKOFF) return seed as Tree
+  try {
+    const tree = await cachedTree()
+    failedAt = 0
+    return tree
+  } catch (err) {
+    failedAt = Date.now()
+    console.error('getTree: showing the bundled seed —', err instanceof Error ? err.message : err)
+    return seed as Tree
+  }
 }
 
 export async function saveTree(tree: Tree): Promise<void> {
@@ -158,6 +194,13 @@ export async function saveTree(tree: Tree): Promise<void> {
 
   // Clean up older versions so blobs don't accumulate forever. Keep the two
   // newest, so a reader that listed just before this write still resolves.
+  // Public pages pick the new tree up on their next request.
+  revalidateTag(TREE_TAG, { expire: 0 })
+  failedAt = 0
+
+  // Clean up older versions so blobs don't accumulate forever. Keep the two
+  // newest, so a reader that listed just before this write still resolves.
+  // (del() is free; this list() is the one extra billed operation per save.)
   const { blobs } = await list({ prefix: PREFIX })
   const stale = blobs.sort((a, b) => +b.uploadedAt - +a.uploadedAt).slice(2)
   if (stale.length > 0) await del(stale.map(b => b.url))

@@ -43,3 +43,4 @@ next-env.d.ts
 # local dev content store (see CONTENT_STORE in lib/content.ts)
 data/tree.local.json
 data/guestbook.local.json
+data/visits.local.json

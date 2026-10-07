@@ -8,10 +8,12 @@ import ItemInfo from './ItemInfo'
 import { useAdminStore } from './useAdminStore'
 import UploadTray from './UploadTray'
 import { useUploadQueue } from './useUploadQueue'
-import { prepareFile, sendFile, type UploadMode } from './uploads'
+import { prepareFile, prepareVideo, sendFile, type UploadMode } from './uploads'
 import IconPicker, { type IconTarget } from './IconPicker'
 import PreviewPane from './PreviewPane'
 import EventsEditor from './EventsEditor'
+import TickerEditor from './TickerEditor'
+import TvEditor from './TvEditor'
 import { useDragSort } from './useDragSort'
 import PixIcon from '@/components/PixIcon'
 import { folderIconFor, itemIconFor } from '@/components/desktop/icons'
@@ -49,10 +51,12 @@ interface Props {
   user: string
   /** The live tree couldn't be read, so what's on screen is only a stand-in. */
   readOnly?: boolean
+  /** why it couldn't be read (shown to the signed-in admin, for the developer) */
+  readOnlyReason?: string
 }
 
 /** A2–A8. Edits are live the moment they save — there is no publish step. */
-export default function AdminApp({ initialTree, initialRev, uploadMode, user, readOnly = false, onSwitchView }: Props & { onSwitchView?: () => void }) {
+export default function AdminApp({ initialTree, initialRev, uploadMode, user, readOnly = false, readOnlyReason, onSwitchView }: Props & { onSwitchView?: () => void }) {
   const router = useRouter()
   const { tree, apply, save, error, pending, setError, setSave } = useAdminStore(initialTree, initialRev, readOnly)
   const uploads = useUploadQueue(uploadMode, apply)
@@ -66,6 +70,8 @@ export default function AdminApp({ initialTree, initialRev, uploadMode, user, re
   const fileRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState(false)
   const [eventsOpen, setEventsOpen] = useState(false)
+  const [tickerOpen, setTickerOpen] = useState(false)
+  const [tvOpen, setTvOpen] = useState(false)
   // ── Select many ──
   const [selecting, setSelecting] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -182,6 +188,7 @@ export default function AdminApp({ initialTree, initialRev, uploadMode, user, re
         <div className="admin-banner">
           Can’t reach the live content right now, so this is a stand-in copy and editing is
           switched off. Nothing here has been lost — reload in a moment.
+          {readOnlyReason && <small className="admin-banner-why">Reason (for the developer): {readOnlyReason}</small>}
         </div>
       )}
 
@@ -275,6 +282,16 @@ export default function AdminApp({ initialTree, initialRev, uploadMode, user, re
           {!folderId && (
             <button className="win-btn" onClick={() => setEventsOpen(true)} title="Posters in the Events app">
               <PixIcon name="ticket" size={14} /> Events
+            </button>
+          )}
+          {!folderId && (
+            <button className="win-btn" onClick={() => setTickerOpen(true)} title="The green ticker under the menu">
+              <PixIcon name="line-chart" size={14} /> Ticker
+            </button>
+          )}
+          {!folderId && (
+            <button className="win-btn" onClick={() => setTvOpen(true)} title="Channels and videos on the TV">
+              <PixIcon name="tv" size={14} /> TV
             </button>
           )}
           <Link className="win-btn" href="/" target="_blank">
@@ -559,6 +576,15 @@ export default function AdminApp({ initialTree, initialRev, uploadMode, user, re
         />
       )}
 
+      {tickerOpen && <TickerEditor tree={tree} apply={apply} onClose={() => setTickerOpen(false)} />}
+      {tvOpen && (
+        <TvEditor
+          tree={tree}
+          apply={apply}
+          uploadVideo={(file, onProgress) => sendFile(prepareVideo(file), uploadMode, onProgress)}
+          onClose={() => setTvOpen(false)}
+        />
+      )}
       {eventsOpen && (
         <EventsEditor tree={tree} apply={apply} uploadPoster={uploadFile} onClose={() => setEventsOpen(false)} />
       )}

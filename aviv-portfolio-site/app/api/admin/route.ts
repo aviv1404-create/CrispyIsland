@@ -1,13 +1,22 @@
 import { NextRequest } from 'next/server'
-import { loadTree, saveTree, treeRev } from '@/lib/content'
+import { getTree, loadTree, saveTree, treeRev } from '@/lib/content'
 import { normalizeTree, TreeError } from '@/lib/normalize'
 import { currentAdmin, requireAdmin } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'
 
-/** Read the tree. Public — this is the same content the public pages render. */
+/**
+ * Read the tree. Public — this is the same content the public pages render.
+ * Only the signed-in admin gets a fresh (uncached, billed) read of the store;
+ * everyone else gets the cached copy, so this URL can't burn Blob operations.
+ */
 export async function GET() {
-  const [{ tree, source }, user] = await Promise.all([loadTree(), currentAdmin()])
+  const user = await currentAdmin()
+  if (!user) {
+    const tree = await getTree()
+    return Response.json({ tree, user, source: 'cache', rev: await treeRev(tree) })
+  }
+  const { tree, source } = await loadTree()
   return Response.json({ tree, user, source, rev: await treeRev(tree) })
 }
 

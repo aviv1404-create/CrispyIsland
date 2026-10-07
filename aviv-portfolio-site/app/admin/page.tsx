@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 // Unlisted URL, and kept out of search results.
 export const metadata: Metadata = {
-  title: 'Admin — Aviv Shmuelof',
+  title: 'Admin — Crispy Island',
   robots: { index: false, follow: false },
   // "Add to Home Screen" opens the admin like an app.
   manifest: '/admin.webmanifest',
@@ -30,7 +30,7 @@ export default async function AdminPage({
     return <SignIn oauthError={error} />
   }
 
-  const { tree, source } = await loadTree()
+  const { tree, source, error } = await loadTree()
   return (
     <AdminShell
       initialTree={tree}
@@ -38,6 +38,7 @@ export default async function AdminPage({
       uploadMode={storeMode()}
       user={user}
       readOnly={source === 'error'}
+      readOnlyReason={source === 'error' ? error : undefined}
     />
   )
 }

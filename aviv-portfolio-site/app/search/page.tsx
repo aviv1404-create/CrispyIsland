@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = { title: 'Search — Aviv Shmuelof' }
+export const metadata: Metadata = { title: 'Search — Crispy Island' }
 
 /** V6 — the desktop opens the Search window and runs the query client-side. */
 export default function SearchPage() {

@@ -33,7 +33,9 @@ import {
 import IconPicker, { type IconTarget } from './IconPicker'
 import PreviewPane from './PreviewPane'
 import EventsEditor from './EventsEditor'
-import { prepareFile, sendFile } from './uploads'
+import TickerEditor from './TickerEditor'
+import TvEditor from './TvEditor'
+import { prepareFile, prepareVideo, sendFile } from './uploads'
 import { useDragSort } from './useDragSort'
 import UploadTray from './UploadTray'
 import type { UploadMode } from './uploads'
@@ -46,6 +48,7 @@ interface Props {
   uploadMode: UploadMode
   user: string
   readOnly?: boolean
+  readOnlyReason?: string
   onSwitchView: () => void
 }
 
@@ -64,7 +67,7 @@ type Sheet =
  * out for one thumb. Big targets, a fixed action bar, sheets instead of
  * dialogs, Undo instead of "are you sure" for photos.
  */
-export default function MobileAdmin({ initialTree, initialRev, uploadMode, user, readOnly = false, onSwitchView }: Props) {
+export default function MobileAdmin({ initialTree, initialRev, uploadMode, user, readOnly = false, readOnlyReason, onSwitchView }: Props) {
   const router = useRouter()
   const { tree, apply, save, error, pending } = useAdminStore(initialTree, initialRev, readOnly)
   const uploads = useUploadQueue(uploadMode, apply)
@@ -77,6 +80,8 @@ export default function MobileAdmin({ initialTree, initialRev, uploadMode, user,
   const cameraRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState(false)
   const [eventsOpen, setEventsOpen] = useState(false)
+  const [tickerOpen, setTickerOpen] = useState(false)
+  const [tvOpen, setTvOpen] = useState(false)
   const [selecting, setSelecting] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
@@ -204,7 +209,10 @@ export default function MobileAdmin({ initialTree, initialRev, uploadMode, user,
       </header>
 
       {readOnly && (
-        <p className="ma-banner">Can’t reach the live content right now, so editing is off. Nothing is lost — try again shortly.</p>
+        <p className="ma-banner">
+          Can’t reach the live content right now, so editing is off. Nothing is lost — try again shortly.
+          {readOnlyReason && <small className="admin-banner-why">Reason (for the developer): {readOnlyReason}</small>}
+        </p>
       )}
       {save === 'error' && error && <p className="ma-banner error">{error}</p>}
 
@@ -225,6 +233,16 @@ export default function MobileAdmin({ initialTree, initialRev, uploadMode, user,
               <PixIcon name="ticket" size={44} />
               <strong>Events</strong>
               <span>Posters for the Events app</span>
+            </button>
+            <button type="button" className="ma-section ma-events" onClick={() => setTickerOpen(true)}>
+              <PixIcon name="line-chart" size={44} />
+              <strong>Ticker</strong>
+              <span>The green strip under the menu</span>
+            </button>
+            <button type="button" className="ma-section ma-events" onClick={() => setTvOpen(true)}>
+              <PixIcon name="tv" size={44} />
+              <strong>TV</strong>
+              <span>Channels and videos on the TV</span>
             </button>
             <div className="ma-home-links">
               <a href="/" target="_blank" rel="noopener">
@@ -497,6 +515,16 @@ export default function MobileAdmin({ initialTree, initialRev, uploadMode, user,
         />
       )}
 
+      {tickerOpen && <TickerEditor tree={tree} apply={apply} phone onClose={() => setTickerOpen(false)} />}
+      {tvOpen && (
+        <TvEditor
+          tree={tree}
+          apply={apply}
+          phone
+          uploadVideo={(file, onProgress) => sendFile(prepareVideo(file), uploadMode, onProgress)}
+          onClose={() => setTvOpen(false)}
+        />
+      )}
       {eventsOpen && (
         <EventsEditor
           tree={tree}

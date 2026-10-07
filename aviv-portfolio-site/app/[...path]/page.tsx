@@ -12,13 +12,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { path } = await params
   const tree = await getTree()
   const folder = folderByPath(tree, path)
-  if (!folder) return { title: 'Not found — Aviv Shmuelof' }
+  if (!folder) return { title: 'Not found — Crispy Island' }
 
   const cover = folderCover(tree, folder)
   return {
-    title: `${folder.name} — Aviv Shmuelof`,
+    title: `${folder.name} — Crispy Island`,
     openGraph: {
-      title: `${folder.name} — Aviv Shmuelof`,
+      title: `${folder.name} — Crispy Island`,
       type: 'website',
       ...(cover ? { images: [cover] } : {}),
     },

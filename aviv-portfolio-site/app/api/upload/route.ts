@@ -5,7 +5,7 @@ import { localStoreEnabled } from '@/lib/content'
 
 export const dynamic = 'force-dynamic'
 
-const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif']
+const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime']
 // Server uploads are the local-dev path and a fallback. On Vercel, requests
 // over ~4.5 MB never reach this function, so the admin uploads full-size
 // originals straight to Blob via /api/upload/client instead.

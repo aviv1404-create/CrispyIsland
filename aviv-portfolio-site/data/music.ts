@@ -19,6 +19,8 @@ export const PLAYLIST: string[] = [
   'https://www.youtube.com/watch?v=f0k0vS9OVjw',
   'https://www.youtube.com/watch?v=i1_QP8kMmj0&list=RDi1_QP8kMmj0&start_radio=1',
   'https://www.youtube.com/watch?v=bZ1BbYqdizA&list=RDbZ1BbYqdizA&start_radio=1',
+  'https://www.youtube.com/watch?v=nbwjirDb1nM&list=PLL2dnCglhEmKYq36ZyA4kAil7j-Jf7aze',
+  'https://www.youtube.com/watch?v=1z8SCtwXy3g',
 ]
 
 /** Pull the 11-character video id out of any YouTube link. */

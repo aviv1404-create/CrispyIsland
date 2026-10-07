@@ -52,6 +52,8 @@ export interface QuickLookPhoto {
 
 export interface DesktopApi {
   tree: Tree
+  /** the visitor is signed in to the admin */
+  isAdmin: boolean
   isMobile: boolean
   open: (spec: WinSpec, opts?: OpenOptions) => void
   /** step a folder window back through its own history */
@@ -62,6 +64,8 @@ export interface DesktopApi {
   quickLook: (photos: QuickLookPhoto[], index: number, title?: string) => void
   copyLink: (href: string) => void
   toast: (message: string) => void
+  /** admin only: change a folder's or file's icon right from the desktop */
+  editIcon: (target: { type: 'folder' | 'item'; id: string }) => void
 }
 
 /** Stable identity for "is this already open?" checks. */

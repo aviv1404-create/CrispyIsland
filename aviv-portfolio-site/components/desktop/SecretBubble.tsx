@@ -14,10 +14,6 @@ const ROLL_KEY = 'secret:roll'
 export default function SecretBubble() {
   const [show, setShow] = useState(false)
   const [pos, setPos] = useState({ x: 30, y: 30 })
-  // once dragged, the goblin stays where it was dropped (px, not %)
-  const [px, setPx] = useState<{ x: number; y: number } | null>(null)
-  const boxRef = useRef<HTMLDivElement>(null)
-  const dragged = useRef(false)
 
   useEffect(() => {
     let lucky = false
@@ -49,6 +45,36 @@ export default function SecretBubble() {
     } catch {}
   }
 
+  return <GifPopup pos={pos} href="/secret" image={BUBBLE.image} hint={BUBBLE.hint} label="Open the secret page" onClose={dismiss} />
+}
+
+/**
+ * A GIF that lands on the desktop and links somewhere secret. It can be
+ * dragged out of the way (a click without dragging follows the link) and has
+ * a small × to close it. Used by the goblin and by the pirate skull.
+ */
+export function GifPopup({
+  pos,
+  href,
+  image,
+  hint,
+  label,
+  onClose,
+  variant = '',
+}: {
+  pos: { x: number; y: number }
+  href: string
+  image: string
+  hint: string
+  label: string
+  onClose: () => void
+  /** extra class for a different entrance / size, e.g. 'pirate' */
+  variant?: string
+}) {
+  // once dragged, it stays where it was dropped (px, not %)
+  const [px, setPx] = useState<{ x: number; y: number } | null>(null)
+  const boxRef = useRef<HTMLDivElement>(null)
+  const dragged = useRef(false)
   // Drag it out of the way; a click without dragging still opens the page.
   const startDrag = (e: React.PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return
@@ -84,15 +110,15 @@ export default function SecretBubble() {
   return (
     <div
       ref={boxRef}
-      className={`secret-bubble${px ? ' moved' : ''}`}
+      className={`secret-bubble${variant ? ` ${variant}` : ''}${px ? ' moved' : ''}`}
       style={px ? { left: px.x, top: px.y } : { left: `${pos.x}%`, top: `${pos.y}%` }}
       onPointerDown={startDrag}
     >
       <a
-        href="/secret"
+        href={href}
         className="secret-bubble-hit"
-        aria-label="Open the secret page"
-        title={`${BUBBLE.hint} (drag to move)`}
+        aria-label={label}
+        title={`${hint} (drag to move)`}
         draggable={false}
         onClick={e => {
           // the click that ends a drag shouldn't open the page
@@ -102,9 +128,9 @@ export default function SecretBubble() {
           }
         }}
       >
-        <img src={BUBBLE.image} alt="" className="secret-bubble-art" draggable={false} />
+        <img src={image} alt="" className="secret-bubble-art" draggable={false} />
       </a>
-      <button type="button" className="secret-bubble-x" onClick={dismiss} aria-label="Close the pop-up" title="Close">
+      <button type="button" className="secret-bubble-x" onClick={onClose} aria-label="Close the pop-up" title="Close">
         ×
       </button>
     </div>

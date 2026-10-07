@@ -34,6 +34,17 @@ interface FloatFieldProps {
   /** fill the parent's height (the desktop) instead of growing with content (windows) */
   fill?: boolean
   className?: string
+  /** Fixed default spots for some icons, measured from the field's edges
+   *  (px, on top of the padding). Others flow in around them. Only used
+   *  when icons are draggable; visitors' own arrangements still win. */
+  presets?: Record<string, Anchor>
+}
+
+export interface Anchor {
+  left?: number
+  right?: number
+  top?: number
+  bottom?: number
 }
 
 const DEFAULT_CELL = { w: 112, h: 118 }
@@ -69,18 +80,19 @@ function gridLayout(
   entries: FloatEntry[],
   width: number,
   height: number,
-  arrange: 'rows' | 'right-column'
+  arrange: 'rows' | 'right-column',
+  startY = PAD
 ): Record<string, Point> {
   const out: Record<string, Point> = {}
   if (arrange === 'right-column') {
     let x = width - PAD
-    let y = PAD
+    let y = startY
     let colW = 0
     for (const e of entries) {
       const c = e.cell ?? DEFAULT_CELL
-      if (y + c.h > height - PAD && y > PAD) {
+      if (y + c.h > height - PAD && y > startY) {
         x -= colW + 8
-        y = PAD
+        y = startY
         colW = 0
       }
       colW = Math.max(colW, c.w)
@@ -107,6 +119,30 @@ function gridLayout(
   return out
 }
 
+/** Preset icons at their anchored spots; the rest flow below the top-anchored ones. */
+function layoutWithPresets(
+  entries: FloatEntry[],
+  width: number,
+  height: number,
+  arrange: 'rows' | 'right-column',
+  presets?: Record<string, Anchor>
+): Record<string, Point> {
+  if (!presets || !Number.isFinite(height)) return gridLayout(entries, width, height, arrange)
+  const out: Record<string, Point> = {}
+  let below = PAD
+  for (const e of entries) {
+    const a = presets[e.id]
+    if (!a) continue
+    const c = e.cell ?? DEFAULT_CELL
+    const x = a.right !== undefined ? width - PAD - a.right - c.w : PAD + (a.left ?? 0)
+    const y = a.bottom !== undefined ? height - PAD - a.bottom - c.h : PAD + (a.top ?? 0)
+    out[e.id] = { x: Math.max(0, Math.min(x, width - c.w)), y: Math.max(0, Math.min(y, height - c.h)) }
+    if (a.bottom === undefined) below = Math.max(below, y + c.h + 6)
+  }
+  const rest = entries.filter(e => !presets[e.id])
+  return { ...gridLayout(rest, width, height, arrange, below), ...out }
+}
+
 /**
  * A field of free-floating icons. Drag them anywhere — they lift, tilt with
  * the motion, glide to a stop when let go and bob gently at rest. Click opens,
@@ -121,6 +157,7 @@ export default function FloatField({
   backgroundMenu = [],
   fill = false,
   className = '',
+  presets,
 }: FloatFieldProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
@@ -147,7 +184,7 @@ export default function FloatField({
   }, [scope])
 
   const free = draggable && size !== null
-  const defaults = size ? gridLayout(entries, size.w, fill ? size.h : Infinity, arrange) : {}
+  const defaults = size ? layoutWithPresets(entries, size.w, fill ? size.h : Infinity, arrange, draggable ? presets : undefined) : {}
 
   const clamp = useCallback(
     (p: Point, cell: { w: number; h: number }): Point => {
@@ -352,6 +389,7 @@ export default function FloatField({
             key={entry.id}
             type="button"
             className={`float-icon${isLive ? ' lifted' : ''}${selected === entry.id ? ' selected' : ''}`}
+            data-entry={entry.id}
             style={{
               width: cell.w,
               height: cell.h,

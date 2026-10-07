@@ -1,5 +1,5 @@
 import { ROOT_SLUGS, slugify, uniqueSlug } from './types'
-import type { Folder, Item, Rotation, SiteEvent, Tree } from './types'
+import type { Folder, Item, Rotation, SiteEvent, TickerSettings, Tree, TvTape } from './types'
 import { isPixName } from './pix-icons'
 
 export class TreeError extends Error {}
@@ -151,10 +151,61 @@ export function normalizeTree(raw: unknown): Tree {
   }
 
   const events = normalizeEvents((raw as { events?: unknown }).events)
-  return { folders: cleanFolders, items: cleanItems, ...(events ? { events } : {}) }
+  const ticker = normalizeTicker((raw as { ticker?: unknown }).ticker)
+  const tv = normalizeTv((raw as { tv?: unknown }).tv)
+  return {
+    folders: cleanFolders,
+    items: cleanItems,
+    ...(events ? { events } : {}),
+    ...(ticker ? { ticker } : {}),
+    ...(tv ? { tv } : {}),
+  }
 }
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
+
+/** TV channels: well-formed tapes with http(s) or site-relative video URLs; unset stays unset. */
+function normalizeTv(raw: unknown): { tapes: TvTape[] } | undefined {
+  if (!raw || typeof raw !== 'object' || !Array.isArray((raw as { tapes?: unknown }).tapes)) return undefined
+  const okUrl = (u: string) => /^(https?:\/\/|\/)/.test(u)
+  const seen = new Set<string>()
+  const tapes: TvTape[] = []
+  for (const t of (raw as { tapes: Record<string, unknown>[] }).tapes.slice(0, 40)) {
+    const id = str(t?.id, 80)
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    const color = /^#[0-9a-f]{3,8}$/i.test(str(t.color, 9)) ? str(t.color, 9) : '#e8e2d0'
+    const vids = Array.isArray(t.videos) ? (t.videos as Record<string, unknown>[]) : []
+    const vSeen = new Set<string>()
+    const videos = vids.slice(0, 100).flatMap(v => {
+      const vid = str(v?.id, 80)
+      const url = str(v?.url, 1000)
+      if (!vid || vSeen.has(vid) || !okUrl(url)) return []
+      vSeen.add(vid)
+      const title = str(v.title, 120)
+      return [{ id: vid, url, ...(title ? { title } : {}) }]
+    })
+    const art = str(t.art, 1000)
+    tapes.push({
+      id,
+      title: str(t.title, 40) || 'TAPE',
+      ...(str(t.sub, 40) ? { sub: str(t.sub, 40) } : {}),
+      color,
+      ...(art && okUrl(art) ? { art } : {}),
+      videos,
+      order: t.order === 'shuffle' ? 'shuffle' : 'list',
+    })
+  }
+  return { tapes }
+}
+
+/** Ticker: up to 20 short lines; unset stays unset. */
+function normalizeTicker(raw: unknown): TickerSettings | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const r = raw as { on?: unknown; messages?: unknown }
+  const messages = Array.isArray(r.messages) ? r.messages.map(m => str(m, 200)).filter(Boolean).slice(0, 20) : []
+  return { on: r.on !== false, messages }
+}
 
 /** Events list: keep only well-formed entries, trimmed; unset stays unset. */
 function normalizeEvents(raw: unknown): SiteEvent[] | undefined {

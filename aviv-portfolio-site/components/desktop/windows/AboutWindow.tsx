@@ -9,6 +9,7 @@ import ClientStrip from '../ClientStrip'
 import { ADMIN_DEMO_URL } from '@/data/secret'
 import { useRef, useState } from 'react'
 import type { FrameProps } from './frame'
+import VisitCounter from '../VisitCounter'
 
 // Pixel badges Aviv drew for each place (public/logos/badge-*.png).
 const EDUCATION = [
@@ -80,6 +81,7 @@ export default function AboutWindow({ frame }: { frame: FrameProps }) {
     <Window {...frame} title="About" size={{ w: 1120, h: 700 }} minSize={{ w: 300, h: 260 }} status={CONTACT_EMAIL}>
       <div className="dwin-scroll about-layout">
         <div className="leaf">
+          {frame.api.isAdmin && <VisitCounter />}
           <h1 className="leaf-title about-name">Aviv Shmuelof</h1>
           <p className="about-alias" onClick={tap}>Crispy</p>
 

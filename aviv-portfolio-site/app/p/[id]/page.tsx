@@ -10,20 +10,20 @@ interface Props {
 }
 
 function describe(title: string, caption: string) {
-  return [title, caption].filter(Boolean).join(' — ') || 'Photograph by Aviv Shmuelof'
+  return [title, caption].filter(Boolean).join(' — ') || 'Photo — Crispy Island'
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const tree = await getTree()
   const item = itemById(tree, id)
-  if (!item) return { title: 'Photo not found — Aviv Shmuelof' }
+  if (!item) return { title: 'Photo not found — Crispy Island' }
 
   const heading = describe(item.title, item.caption)
   const image = itemThumb(item)
 
   return {
-    title: `${heading} — Aviv Shmuelof`,
+    title: `${heading} — Crispy Island`,
     description: item.alt || heading,
     openGraph: {
       title: heading,

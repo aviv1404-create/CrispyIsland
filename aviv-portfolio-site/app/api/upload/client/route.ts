@@ -25,9 +25,10 @@ export async function POST(request: Request) {
       request,
       onBeforeGenerateToken: async pathname => {
         if (!pathname.startsWith('uploads/')) throw new Error('Uploads must go under uploads/')
+        // Videos (for the TV) are allowed bigger than photos.
         return {
-          allowedContentTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif'],
-          maximumSizeInBytes: 200 * 1024 * 1024,
+          allowedContentTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif', 'video/mp4', 'video/webm', 'video/quicktime'],
+          maximumSizeInBytes: 1024 * 1024 * 1024,
           addRandomSuffix: true,
         }
       },

@@ -12,6 +12,7 @@ interface Props {
   uploadMode: UploadMode
   user: string
   readOnly?: boolean
+  readOnlyReason?: string
 }
 
 const QUERY = '(max-width: 760px), (pointer: coarse) and (max-width: 1024px)'

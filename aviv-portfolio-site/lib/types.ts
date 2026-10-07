@@ -97,6 +97,40 @@ export interface Tree {
   items: Item[]
   /** Events app posters, in display order. Unset = the bundled list in data/events.ts. */
   events?: SiteEvent[]
+  /** The green ticker strip under the menu. Unset = on, with the placeholder quotes. */
+  ticker?: TickerSettings
+  /** The TV app's channels (tapes). Unset = the bundled list in data/tv.ts. */
+  tv?: { tapes: TvTape[] }
+}
+
+/** One video on a TV channel: a YouTube/Vimeo link or an uploaded video file's URL. */
+export interface TvVideo {
+  id: string
+  url: string
+  title?: string
+}
+
+/** A TV channel, shown as a VHS tape on the shelf. */
+export interface TvTape {
+  id: string
+  /** written on the spine */
+  title: string
+  /** small text under the title */
+  sub?: string
+  /** spine colour */
+  color: string
+  /** a picture instead of written text (spine + screen when nothing plays) */
+  art?: string
+  videos: TvVideo[]
+  /** play the videos in this order, or shuffled */
+  order?: 'list' | 'shuffle'
+}
+
+export interface TickerSettings {
+  /** false hides the strip */
+  on: boolean
+  /** the lines that run across; empty = placeholder stock quotes */
+  messages: string[]
 }
 
 export const ROOT_SLUGS = ['photography', 'cinema', 'commercial'] as const
