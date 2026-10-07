@@ -3140,3 +3140,12 @@ li.sort-over-after::after { top: auto; bottom: -3px; }
 .edu-link:hover .edu-logo { transform: scale(1.06); }
 .edu-logo { transition: transform 0.15s ease; }
 .edu-go { color: var(--accent); font-weight: 400; }
+
+/* A maximized window takes the ticker's strip too: the desktop reaches up to the menu bar. */
+.desktop.has-max { top: var(--nav-bottom, var(--desk-top, 74px)); }
+
+/* Cover Flow scales with its window: bigger window, bigger pictures. */
+.cf { container-type: size; }
+.cf-photo .cf-stage { --cf-h: clamp(150px, min(58cqh, 42cqw), 760px); --cf-w: calc(var(--cf-h) * 1.48); --cf-gap: calc(var(--cf-w) * 0.74); --cf-step: calc(var(--cf-w) * 0.17); }
+.cf-poster .cf-stage { --cf-h: clamp(220px, min(62cqh, 60cqw), 780px); --cf-w: calc(var(--cf-h) * 0.72); --cf-gap: calc(var(--cf-w) * 0.82); --cf-step: calc(var(--cf-w) * 0.24); }
+.cf-stage { perspective: calc(var(--cf-w) * 2.8); }

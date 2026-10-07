@@ -301,8 +301,11 @@ export default function Desktop({ tree, isAdmin, children }: DesktopProps) {
     if (!header || !desk) return
     // …and under the green ticker strip, when it's showing.
     const ticker = document.querySelector('.tk') as HTMLElement | null
-    const sync = () =>
+    const sync = () => {
       desk.style.setProperty('--desk-top', `${ticker ? ticker.offsetTop + ticker.offsetHeight : header.offsetHeight}px`)
+      // a maximized window grows up over the ticker, to the bottom of the menu bar
+      desk.style.setProperty('--nav-bottom', `${header.offsetTop + header.offsetHeight}px`)
+    }
     sync()
     const ro = new ResizeObserver(sync)
     ro.observe(header)
@@ -419,7 +422,10 @@ export default function Desktop({ tree, isAdmin, children }: DesktopProps) {
 
   return (
     <ContextMenuProvider>
-      <div ref={deskRef} className={`desktop${isMobile ? ' mobile' : ''}`}>
+      <div
+        ref={deskRef}
+        className={`desktop${isMobile ? ' mobile' : ''}${!isMobile && wins.some(w => w.maximized) ? ' has-max' : ''}`}
+      >
         <div className="desktop-wallpaper" aria-hidden="true">
           {DESKTOP_ART && <img className="desktop-art" src={DESKTOP_ART} alt="" />}
         </div>
