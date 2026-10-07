@@ -14,7 +14,14 @@ export const TAPES: Tape[] = [
   { id: 'showreel', title: 'SHOWREEL', sub: '2026', color: '#e8322a', videos: [] },
   { id: 'dop', title: 'DOP REEL', sub: 'cinematography', color: '#2a6be8', videos: [] },
   { id: 'music', title: 'MUSIC VIDEOS', color: '#f2c12e', videos: [] },
-  { id: 'tape-exclusive', title: 'TAPE EXCLUSIVE', art: '/tv/tape-exclusive.png', color: '#000000', videos: [] },
+  {
+    id: 'tape-exclusive',
+    title: 'TAPE EXCLUSIVE',
+    art: '/tv/tape-exclusive.png',
+    color: '#000000',
+    // the "קריספי טייפ" YouTube playlist — plays through and loops
+    videos: [{ id: 'crispy-tape', title: 'קריספי טייפ', url: 'https://www.youtube.com/playlist?list=PLJWK9y5PScgk' }],
+  },
 ]
 
 /** The channels to show: the admin's list, else the starting list above. */

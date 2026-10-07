@@ -3073,3 +3073,10 @@ li.sort-over-after::after { top: auto; bottom: -3px; }
 .guide-count { margin-right: auto; color: #888; font-size: 11px; }
 @keyframes guide-pop { from { transform: scale(0.85); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .guide { transition: none !important; } .guide-bubble { animation: none; } }
+
+/* TV: YouTube plays under a cover of static until it's really playing, and a
+   transparent shield takes the clicks so YouTube's pause/suggestion screens
+   can't be opened from inside the TV. */
+.tv-screen .tv-cover { z-index: 2; opacity: 1; }
+.tv-screen .tv-shield { position: absolute; inset: 0; z-index: 3; cursor: default; }
+.tv-screen .tv-glass { z-index: 4; }

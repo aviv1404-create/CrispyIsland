@@ -52,9 +52,15 @@ const PAD = 16
 const DRAG_THRESHOLD = 4
 
 // ── Remembered arrangement ────────────────────────────
+// Bump the version whenever the default layout (DESK_LAYOUT) changes, so
+// arrangements remembered from an older layout are dropped and every visitor
+// sees the new default once.
+const KEY_VERSION = 'v2'
+const storeKey = (scope: string) => `icons:${KEY_VERSION}:${scope}`
+
 function loadPositions(scope: string): Record<string, Point> {
   try {
-    const raw = localStorage.getItem(`icons:${scope}`)
+    const raw = localStorage.getItem(storeKey(scope))
     return raw ? (JSON.parse(raw) as Record<string, Point>) : {}
   } catch {
     return {}
@@ -63,7 +69,7 @@ function loadPositions(scope: string): Record<string, Point> {
 
 function savePositions(scope: string, positions: Record<string, Point>) {
   try {
-    localStorage.setItem(`icons:${scope}`, JSON.stringify(positions))
+    localStorage.setItem(storeKey(scope), JSON.stringify(positions))
   } catch {
     // private mode / storage full — the arrangement just won't persist
   }
@@ -71,7 +77,7 @@ function savePositions(scope: string, positions: Record<string, Point>) {
 
 function clearPositions(scope: string) {
   try {
-    localStorage.removeItem(`icons:${scope}`)
+    localStorage.removeItem(storeKey(scope))
   } catch {}
 }
 

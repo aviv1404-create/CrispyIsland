@@ -42,6 +42,14 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
   const embed = video ? getEmbedUrl(video.url) : null
   const isFile = !!video && !embed
   const playing = on && !!video && !loading
+  const isList = !!embed?.playlist
+  // What the YouTube player inside reports: its state (1 = playing) and, for
+  // a playlist, where it is in the list. Until it says "playing", the screen
+  // shows static, so YouTube's loading/pause/end screens never show through.
+  const [yt, setYt] = useState<{ state: number; idx?: number; len?: number }>({ state: -1 })
+  // If the browser blocked autoplay (or the player never reports in), get the
+  // static and the shield out of the way so the viewer can press play.
+  const [tapToPlay, setTapToPlay] = useState(false)
 
   const insert = (i: number) => {
     setAt(i)
@@ -62,6 +70,8 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
 
   // A moment of static whenever the tape or video changes, like a real deck.
   useEffect(() => {
+    setYt({ state: -1 })
+    setTapToPlay(false)
     setLoading(true)
     const t = setTimeout(() => setLoading(false), 700)
     return () => clearTimeout(t)
@@ -89,21 +99,44 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
     }
     const onMsg = (e: MessageEvent) => {
       if (!ifr || e.source !== ifr.contentWindow) return
-      let m: { event?: string; info?: { playerState?: number } | number } = {}
+      let m: {
+        event?: string
+        info?: { playerState?: number; playlistIndex?: number; playlist?: string[] | null } | number
+      } = {}
       try {
         m = typeof e.data === 'string' ? JSON.parse(e.data) : e.data
       } catch {
         return
       }
-      const ytEnded =
-        (m.event === 'onStateChange' && m.info === 0) ||
-        (m.event === 'infoDelivery' && typeof m.info === 'object' && m.info?.playerState === 0)
-      if (ytEnded || m.event === 'finish') nextRef.current()
+      if (embed.provider === 'youtube') {
+        const info = m.info
+        const state =
+          m.event === 'onStateChange' && typeof info === 'number'
+            ? info
+            : m.event === 'infoDelivery' && typeof info === 'object' && typeof info?.playerState === 'number'
+              ? info.playerState
+              : undefined
+        if (state === 1) setTapToPlay(false)
+        if (state !== undefined || (typeof info === 'object' && info?.playlistIndex !== undefined)) {
+          setYt(prev => ({
+            state: state ?? prev.state,
+            idx: typeof info === 'object' && typeof info?.playlistIndex === 'number' ? info.playlistIndex : prev.idx,
+            len: typeof info === 'object' && Array.isArray(info?.playlist) ? info.playlist.length : prev.len,
+          }))
+        }
+        // A playlist moves on (and loops) by itself; a single video hands
+        // over to the next one on this channel.
+        if (state === 0 && !embed.playlist) nextRef.current()
+        return
+      }
+      if (m.event === 'finish') nextRef.current()
     }
     window.addEventListener('message', onMsg)
     ifr?.addEventListener('load', hello)
     const t = setInterval(hello, 1500) // keep saying hello until the player answers
+    const stuck = setTimeout(() => setTapToPlay(true), 5000)
     return () => {
+      clearTimeout(stuck)
       window.removeEventListener('message', onMsg)
       ifr?.removeEventListener('load', hello)
       clearInterval(t)
@@ -111,17 +144,32 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
   }, [playing, embed])
 
   const ch = (d: number) => insert((at + d + tapes.length) % tapes.length)
+  // ⏭ — inside a YouTube playlist, ask the player to skip; otherwise move on
+  // to the next video on this channel.
+  const skip = () => {
+    if (isList && playing) {
+      setYt(prev => ({ ...prev, state: 3 }))
+      frameRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'nextVideo', args: [] }), '*')
+    } else nextVideo()
+  }
   const src = useMemo(() => {
     if (!embed) return ''
     const sep = embed.embedSrc.includes('?') ? '&' : '?'
     return embed.provider === 'youtube'
-      ? `${embed.embedSrc}${sep}autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`
+      ? // No YouTube control bar, captions, annotations, keyboard or fullscreen:
+        // the TV's own knobs are the controls.
+        `${embed.embedSrc}${sep}autoplay=1&controls=0&disablekb=1&fs=0&iv_load_policy=3&cc_load_policy=0&rel=0&playsinline=1&enablejsapi=1${embed.playlist ? '&loop=1' : ''}`
       : `${embed.embedSrc}${sep}autoplay=1&api=1&player_id=tv`
   }, [embed])
   const count = tape?.videos.length ?? 0
-  const status = tape
-    ? `CH ${String(at + 1).padStart(2, '0')} · ${tape.title}${count > 1 ? ` · ${(pos % count) + 1}/${count}${tape.order === 'shuffle' ? ' 🔀' : ''}` : ''}${video?.title ? ` · ${video.title}` : ''}`
-    : ' '
+  const where =
+    isList && yt.len
+      ? ` · ${(yt.idx ?? 0) + 1}/${yt.len}`
+      : count > 1
+        ? ` · ${(pos % count) + 1}/${count}${tape?.order === 'shuffle' ? ' 🔀' : ''}`
+        : ''
+  const status = tape ? `CH ${String(at + 1).padStart(2, '0')} · ${tape.title}${where}${video?.title ? ` · ${video.title}` : ''}` : ' '
+  const canSkip = count > 1 || isList
 
   return (
     <Window {...frame} title="TV" mini={{ w: 280, h: 280, label: 'TV' }} size={{ w: 640, h: 720 }} minSize={{ w: 320, h: 420 }} status={status}>
@@ -131,14 +179,25 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
             {on && (
               <>
                 {playing && embed ? (
-                  <iframe
-                    ref={frameRef}
-                    key={`${tape!.id}-${pos}-${video!.id}`}
-                    src={src}
-                    title={video!.title || tape!.title}
-                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-                    allowFullScreen
-                  />
+                  <>
+                    <iframe
+                      ref={frameRef}
+                      key={`${tape!.id}-${pos}-${video!.id}`}
+                      src={src}
+                      title={video!.title || tape!.title}
+                      allow="autoplay; encrypted-media; picture-in-picture"
+                    />
+                    {embed.provider === 'youtube' && !(tapToPlay && yt.state !== 1) && (
+                      <>
+                        {/* Static over the picture until YouTube is actually
+                            playing (loading, buffering, between videos). */}
+                        {yt.state !== 1 && <div className="tv-static tv-cover" aria-hidden="true" />}
+                        {/* Clicks land on the TV, not on YouTube: no pausing
+                            into YouTube's suggestion screen. */}
+                        <div className="tv-shield" aria-hidden="true" />
+                      </>
+                    )}
+                  </>
                 ) : playing && isFile ? (
                   <video
                     key={`${tape!.id}-${pos}-${video!.id}`}
@@ -169,8 +228,8 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
             <div className="tv-knobs">
               <button type="button" onClick={() => ch(-1)} aria-label="Channel down" title="CH ▼">▼</button>
               <button type="button" onClick={() => ch(1)} aria-label="Channel up" title="CH ▲">▲</button>
-              {count > 1 && (
-                <button type="button" onClick={nextVideo} aria-label="Next video on this channel" title="Next video">
+              {canSkip && (
+                <button type="button" onClick={skip} aria-label="Next video on this channel" title="Next video">
                   ⏭
                 </button>
               )}
