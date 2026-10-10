@@ -1,0 +1,58 @@
+{
+  "folders": [
+    {
+      "id": "general",
+      "name": "General",
+      "items": [
+        {
+          "id": "co1",
+          "type": "photo",
+          "src": "https://picsum.photos/seed/comm1/800/600",
+          "alt": "Commercial work",
+          "title": "",
+          "youtubeUrl": ""
+        },
+        {
+          "id": "co2",
+          "type": "video",
+          "src": "https://picsum.photos/seed/comm2/800/600",
+          "alt": "Commercial video",
+          "title": "",
+          "youtubeUrl": ""
+        },
+        {
+          "id": "co3",
+          "type": "photo",
+          "src": "https://picsum.photos/seed/comm3/800/600",
+          "alt": "Commercial photography",
+          "title": "",
+          "youtubeUrl": ""
+        },
+        {
+          "id": "co4",
+          "type": "video",
+          "src": "https://picsum.photos/seed/comm4/800/600",
+          "alt": "Video production",
+          "title": "",
+          "youtubeUrl": ""
+        },
+        {
+          "id": "co5",
+          "type": "photo",
+          "src": "https://picsum.photos/seed/comm5/800/600",
+          "alt": "Commercial",
+          "title": "",
+          "youtubeUrl": ""
+        },
+        {
+          "id": "co6",
+          "type": "photo",
+          "src": "https://picsum.photos/seed/comm6/800/600",
+          "alt": "Commercial work",
+          "title": "",
+          "youtubeUrl": ""
+        }
+      ]
+    }
+  ]
+}

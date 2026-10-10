@@ -1,0 +1,26 @@
+{
+  "folders": [
+    {
+      "id": "shot",
+      "name": "Films I Shot",
+      "films": [
+        { "id": "m1", "title": "Untitled Film I", "duration": "12:30", "year": 2024, "posterSrc": "https://picsum.photos/seed/film1/400/600", "videoUrl": "", "description": "", "director": "", "producer": "", "cinematographer": "", "editor": "", "productionCompany": "", "awards": [], "stills": [] },
+        { "id": "m2", "title": "Untitled Film II", "duration": "8:45", "year": 2024, "posterSrc": "https://picsum.photos/seed/film2/400/600", "videoUrl": "", "description": "", "director": "", "producer": "", "cinematographer": "", "editor": "", "productionCompany": "", "awards": [], "stills": [] }
+      ]
+    },
+    {
+      "id": "directed",
+      "name": "Films I Directed",
+      "films": [
+        { "id": "m3", "title": "Untitled Film III", "duration": "22:00", "year": 2023, "posterSrc": "https://picsum.photos/seed/film3/400/600", "videoUrl": "", "description": "", "director": "", "producer": "", "cinematographer": "", "editor": "", "productionCompany": "", "awards": [], "stills": [] }
+      ]
+    },
+    {
+      "id": "produced",
+      "name": "Films I Produced",
+      "films": [
+        { "id": "m4", "title": "Untitled Film IV", "duration": "5:20", "year": 2023, "posterSrc": "https://picsum.photos/seed/film4/400/600", "videoUrl": "", "description": "", "director": "", "producer": "", "cinematographer": "", "editor": "", "productionCompany": "", "awards": [], "stills": [] }
+      ]
+    }
+  ]
+}
