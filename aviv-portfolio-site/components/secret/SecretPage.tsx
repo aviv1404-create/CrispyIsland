@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Guestbook from './Guestbook'
+import { collect } from '@/lib/stickers'
 import { PIRATE_ART } from '@/data/pirate'
 import { ARCHIVE, ART, CASTLE, CURSORS, DECOR, GIF, GIF_COUNT, PAGE, THEME, TILE, WORKS } from '@/data/secret'
 
@@ -42,6 +43,8 @@ export default function SecretPage() {
   const [visits, setVisits] = useState<number | null>(null)
   const [theme, setTheme] = useState<'castle' | 'classic'>(THEME)
   const castle = theme === 'castle'
+  // Made it into the dungeon: the goblin sticker is yours.
+  useEffect(() => collect('goblin'), [])
   useEffect(() => {
     try {
       const t = localStorage.getItem(THEME_KEY)

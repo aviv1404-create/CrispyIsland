@@ -1,6 +1,7 @@
 'use client'
 
 import { rotClass } from '@/lib/types'
+import PixImg from './PixImg'
 import { useEffect, useCallback, useRef, useState } from 'react'
 
 export interface LightboxPhoto {
@@ -10,6 +11,12 @@ export interface LightboxPhoto {
   title?: string
   caption?: string
   rotate?: number
+  /** pixel placeholder while it loads (see PixImg) */
+  px?: string
+  width?: number
+  height?: number
+  /** the full-size original, when `src` is a smaller copy */
+  original?: string
 }
 
 interface LightboxProps {
@@ -140,7 +147,7 @@ export default function Lightbox({
 
       <div className="lightbox-stage" onClick={e => e.stopPropagation()}>
         {photo.src ? (
-          <img src={photo.src} alt={photo.alt} className={`lightbox-img ${rotClass(photo)}`} />
+          <PixImg key={photo.id} src={photo.src} px={photo.px} width={photo.width} height={photo.height} alt={photo.alt} className={`lightbox-img ${rotClass(photo)}`} />
         ) : (
           <div className="lightbox-missing">Image coming soon</div>
         )}
@@ -162,6 +169,11 @@ export default function Lightbox({
       {/* Caption + Share, sitting on the status bar */}
       <div className="lightbox-bar" onClick={e => e.stopPropagation()}>
         <span className="lightbox-caption">{label}</span>
+        {photo.original && photo.original !== photo.src && (
+          <a className="win-btn ghost" href={photo.original} target="_blank" rel="noopener noreferrer" title="Open the full-size original">
+            Original
+          </a>
+        )}
         {shareable && (
           <button className="win-btn" onClick={() => setShareOpen(true)}>
             Share

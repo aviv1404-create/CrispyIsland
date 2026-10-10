@@ -18,6 +18,14 @@ export const GAME_KEYS = {
   down: { code: 264, key: 'ArrowDown', label: 'DOWN', letter: '▼', hebrew: '' },
 } as const
 type GameKey = keyof typeof GAME_KEYS
+type KeyDef = { code: number; key: string }
+
+/** Digits for typing amounts: ASCII 48–57. */
+const DIGIT = (d: number): KeyDef => ({ code: 48 + d, key: String(d) })
+const MAX_AMOUNT = 99999
+/** Holding ▲/▼ speeds up: the step grows the longer the finger stays down. */
+const stepFor = (repeats: number) => (repeats < 10 ? 1 : repeats < 22 ? 10 : repeats < 34 ? 100 : 1000)
+
 declare global {
   interface Window {
     Dos?: (el: HTMLElement, opts: Record<string, unknown>) => DosHandle
@@ -57,8 +65,8 @@ export default function DosPlayer({ bundle, cover, label }: { bundle: string; co
 
   // Press and release a key in the emulator. Falls back to a synthetic
   // keyboard event if the command interface isn't ready yet.
-  const press = (k: GameKey) => {
-    const { code, key } = GAME_KEYS[k]
+  const press = (k: GameKey | KeyDef) => {
+    const { code, key } = typeof k === 'string' ? GAME_KEYS[k] : k
     if (navigator.vibrate) navigator.vibrate(12)
     if (ci.current) {
       ci.current.sendKeyEvent(code, true)
@@ -66,12 +74,50 @@ export default function DosPlayer({ bundle, cover, label }: { bundle: string; co
       return
     }
     const target = host.current?.querySelector('canvas') ?? window
-    const init = { key, code: key.length === 1 ? `Key${key.toUpperCase()}` : key, bubbles: true }
+    const init = { key, code: /^\d$/.test(key) ? `Digit${key}` : key.length === 1 ? `Key${key.toUpperCase()}` : key, bubbles: true }
     target.dispatchEvent(new KeyboardEvent('keydown', init))
     setTimeout(() => target.dispatchEvent(new KeyboardEvent('keyup', init)), 90)
   }
   const [state, setState] = useState<'idle' | 'loading' | 'running' | 'error'>('idle')
   const [error, setError] = useState('')
+  /** the money switch is flipped: ▲/▼ dial an amount, ENTER types it into the game */
+  const [money, setMoney] = useState(false)
+  const [amount, setAmount] = useState(0)
+  const hold = useRef<{ timer: ReturnType<typeof setTimeout> | null; repeats: number }>({ timer: null, repeats: 0 })
+  const nudge = (dir: 1 | -1) => {
+    const step = stepFor(hold.current.repeats)
+    // a bigger step lands on round numbers (120 → 200, not 220)
+    setAmount(a => Math.min(MAX_AMOUNT, Math.max(0, step > 1 ? (dir > 0 ? Math.floor(a / step) + 1 : Math.ceil(a / step) - 1) * step : a + dir)))
+    if (navigator.vibrate) navigator.vibrate(6)
+  }
+  const startHold = (dir: 1 | -1) => {
+    stopHold()
+    hold.current.repeats = 0
+    nudge(dir)
+    const tick = (delay: number) => {
+      hold.current.timer = setTimeout(() => {
+        hold.current.repeats++
+        nudge(dir)
+        tick(Math.max(45, delay * 0.9))
+      }, delay)
+    }
+    tick(380)
+  }
+  const stopHold = () => {
+    if (hold.current.timer) clearTimeout(hold.current.timer)
+    hold.current.timer = null
+  }
+  useEffect(() => stopHold, [])
+  /** Type the amount into the game, digit by digit, then Enter. */
+  const typeAmount = () => {
+    const keys: KeyDef[] = [...String(amount)].map(d => DIGIT(Number(d)))
+    keys.forEach((k, i) => setTimeout(() => press(k), i * 150))
+    setTimeout(() => press('enter'), keys.length * 150 + 60)
+  }
+  const tap = (fn: () => void) => (e: React.PointerEvent) => {
+    e.preventDefault()
+    fn()
+  }
 
   const start = async () => {
     setState('loading')
@@ -136,42 +182,69 @@ export default function DosPlayer({ bundle, cover, label }: { bundle: string; co
         </div>
       )}
       {state === 'running' && (
-        <div className="dos-keys" role="group" aria-label="Game keys">
+        <div className={`dos-keys${money ? ' money' : ''}`} role="group" aria-label={money ? 'Amount keys' : 'Game keys'}>
+          {/* the money switch: flick it up and ▲/▼ dial an amount instead */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={money}
+            className={`dos-switch${money ? ' on' : ''}`}
+            onPointerDown={tap(() => setMoney(m => !m))}
+            aria-label={money ? 'Money mode on — switch back to the game keys' : 'Money mode: dial amounts with the arrows'}
+          >
+            <span className="dos-switch-track">
+              <span className="dos-switch-lever" />
+            </span>
+            <span className="dos-switch-label">{money ? '$ ON' : '$'}</span>
+          </button>
           <div className="dos-arrows">
             {(['up', 'down'] as const).map(k => (
               <button
                 key={k}
                 type="button"
-                className={`keycap keycap-arrow keycap-${k}`}
+                className={`keycap keycap-arrow keycap-${k}${money ? ' keycap-money' : ''}`}
                 onPointerDown={e => {
                   e.preventDefault()
-                  press(k)
+                  if (money) {
+                    e.currentTarget.setPointerCapture?.(e.pointerId)
+                    startHold(k === 'up' ? 1 : -1)
+                  } else press(k)
                 }}
-                aria-label={GAME_KEYS[k].label}
+                onPointerUp={stopHold}
+                onPointerCancel={stopHold}
+                onLostPointerCapture={stopHold}
+                onContextMenu={e => e.preventDefault()}
+                aria-label={money ? (k === 'up' ? 'More' : 'Less') : GAME_KEYS[k].label}
               >
-                {GAME_KEYS[k].letter}
+                {money ? (k === 'up' ? '+' : '−') : GAME_KEYS[k].letter}
               </button>
             ))}
           </div>
-          {(['yes', 'no', 'enter'] as const).map(k => {
-            const g = GAME_KEYS[k]
-            return (
-              <button
-                key={k}
-                type="button"
-                className={`keycap keycap-${k}`}
-                onPointerDown={e => {
-                  e.preventDefault()
-                  press(k)
-                }}
-                aria-label={`${g.label} (${g.letter})`}
-              >
-                <span className="keycap-letter">{g.letter}</span>
-                <strong>{g.label}</strong>
-                {g.hebrew && <span className="keycap-he">{g.hebrew}</span>}
-              </button>
-            )
-          })}
+          <div className="dos-flip" key={money ? 'money' : 'keys'}>
+            {money ? (
+              <>
+                <button type="button" className="dos-amount" onPointerDown={tap(() => setAmount(0))} aria-label={`Amount ${amount} — tap to clear`} title="Tap to clear">
+                  <span className="dos-amount-ghost" aria-hidden="true">88888</span>
+                  <span className="dos-amount-digits">{amount}</span>
+                </button>
+                <button type="button" className="keycap keycap-enter" onPointerDown={tap(typeAmount)} aria-label={`Type ${amount} into the game`}>
+                  <span className="keycap-letter">↵</span>
+                  <strong>ENTER</strong>
+                </button>
+              </>
+            ) : (
+              (['yes', 'no', 'enter'] as const).map(k => {
+                const g = GAME_KEYS[k]
+                return (
+                  <button key={k} type="button" className={`keycap keycap-${k}`} onPointerDown={tap(() => press(k))} aria-label={`${g.label} (${g.letter})`}>
+                    <span className="keycap-letter">{g.letter}</span>
+                    <strong>{g.label}</strong>
+                    {g.hebrew && <span className="keycap-he">{g.hebrew}</span>}
+                  </button>
+                )
+              })
+            )}
+          </div>
         </div>
       )}
     </div>

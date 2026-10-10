@@ -5,7 +5,7 @@ import PixIcon from '@/components/PixIcon'
 import { eventsOf, type EventInfo } from '@/data/events'
 import { folderCover, itemsIn } from '@/lib/tree-query'
 import type { Tree } from '@/lib/types'
-import { itemThumb, rotClass } from '@/lib/types'
+import { itemPx, itemThumb, photoView, rotClass } from '@/lib/types'
 import CoverFlow from '../CoverFlow'
 import Window from '../Window'
 import type { FrameProps } from './frame'
@@ -74,17 +74,19 @@ export default function EventsWindow({ frame }: { frame: FrameProps }) {
   const flow = photos.map((p, i) => ({
     id: p.id,
     src: itemThumb(p),
+    px: itemPx(p),
     title: p.title || `${i + 1} of ${photos.length}`,
     sub: p.caption,
     className: rotClass(p),
   }))
   const look = photos.map(p => ({
     id: p.id,
-    src: itemThumb(p),
+    src: p.kind === 'photo' ? photoView(p) : itemThumb(p),
     alt: p.alt || ev.title,
     title: p.title,
     caption: p.caption,
     rotate: p.kind === 'photo' ? p.rotate : undefined,
+    ...(p.kind === 'photo' ? { px: p.px, width: p.width, height: p.height, original: p.src } : {}),
   }))
   const poster = posterFor(tree, ev)
 

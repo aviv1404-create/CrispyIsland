@@ -15,6 +15,7 @@ import EventsEditor from './EventsEditor'
 import TickerEditor from './TickerEditor'
 import TvEditor from './TvEditor'
 import StorageMeter from './StorageMeter'
+import Optimizer from './Optimizer'
 import { useDragSort } from './useDragSort'
 import PixIcon from '@/components/PixIcon'
 import { folderIconFor, itemIconFor } from '@/components/desktop/icons'
@@ -532,6 +533,7 @@ export default function AdminApp({ initialTree, initialRev, uploadMode, user, re
       {uploads.jobs.length > 0 && <UploadTray queue={uploads} />}
 
       {!readOnly && <StorageMeter bump={storageBump} />}
+      <Optimizer tree={tree} apply={apply} mode={uploadMode} paused={uploads.busy} readOnly={readOnly} />
 
       <div className={`win-status${save === 'error' ? ' error' : ''}`}>
         {status}

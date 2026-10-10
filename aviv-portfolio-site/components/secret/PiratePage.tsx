@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
 import { CHESTS, PIRATE_ART as A, PIRATE_CURSORS as CURSORS, PIRATE_PAGE as P, SHIPYARD } from '@/data/pirate'
+import { collect } from '@/lib/stickers'
 
 /**
  * Crispy's Secret Pirate Port — the second secret layer, under the dungeon.
@@ -8,6 +10,8 @@ import { CHESTS, PIRATE_ART as A, PIRATE_CURSORS as CURSORS, PIRATE_PAGE as P, S
  * parchment page and a big COMING SOON stamp. Content lives in data/pirate.ts.
  */
 export default function PiratePage() {
+  // Found the port: the pirate sticker is yours.
+  useEffect(() => collect('pirate'), [])
   return (
     <div
       className="pp"

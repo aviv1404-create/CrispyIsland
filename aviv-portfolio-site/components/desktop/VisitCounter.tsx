@@ -3,21 +3,39 @@
 import { useEffect, useState } from 'react'
 
 const KEY = 'visit:counted'
+const PERSON = 'visitor:counted'
+const DAY = 'visitor:day'
 
-/** Counts this visit once per browser tab session (nothing personal is sent). */
+/**
+ * Counts this visit once per browser tab session, and tells the counter
+ * whether this browser is a new person (never counted) or new today. Only
+ * yes/no flags are sent — nothing personal, no ID.
+ */
 export function VisitPing({ skip }: { skip: boolean }) {
   useEffect(() => {
     if (skip) return
+    let newPerson = false
+    let newToday = false
     try {
       if (sessionStorage.getItem(KEY)) return
       sessionStorage.setItem(KEY, '1')
+      const today = new Date().toISOString().slice(0, 10)
+      newPerson = !localStorage.getItem(PERSON)
+      newToday = localStorage.getItem(DAY) !== today
+      localStorage.setItem(PERSON, '1')
+      localStorage.setItem(DAY, today)
     } catch {}
-    fetch('/api/visits', { method: 'POST', keepalive: true }).catch(() => {})
+    fetch('/api/visits', {
+      method: 'POST',
+      keepalive: true,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ newPerson, newToday }),
+    }).catch(() => {})
   }, [skip])
   return null
 }
 
-type Stats = { total: number; today: number; week: number; days: { day: string; count: number }[] }
+type Stats = { people: number; visits: number; today: number; week: number; days: { day: string; count: number }[] }
 
 /**
  * The private visit counter in the About window — rendered only for the
@@ -43,8 +61,8 @@ export default function VisitCounter() {
   return (
     <div className={`vc${open ? ' open' : ''}`}>
       <button type="button" className="vc-badge" onClick={() => setOpen(o => !o)} title="Only you can see this (signed in as admin)">
-        <span className="vc-label">VISITS</span>
-        <span className="vc-digits">{err ? '------' : String(stats?.total ?? 0).padStart(6, '0')}</span>
+        <span className="vc-label">VISITORS</span>
+        <span className="vc-digits">{err ? '------' : String(stats?.people ?? 0).padStart(6, '0')}</span>
       </button>
       {open && (
         <div className="vc-panel">
@@ -59,14 +77,14 @@ export default function VisitCounter() {
           ) : (
             <>
               <p>
-                <strong>{stats.today}</strong> today · <strong>{stats.week}</strong> this week · <strong>{stats.total}</strong> all time
+                <strong>{stats.people}</strong> different people so far · <strong>{stats.today}</strong> today · <strong>{stats.visits}</strong> visits in all
               </p>
-              <div className="vc-bars" aria-label="Visits, last 14 days">
+              <div className="vc-bars" aria-label="Visitors per day, last 14 days">
                 {stats.days.map(d => (
                   <span key={d.day} title={`${d.day}: ${d.count}`} style={{ height: `${Math.max(4, (d.count / max) * 100)}%` }} />
                 ))}
               </div>
-              <small>Last 14 days · one visit = one browser session · your own visits aren’t counted · only you see this</small>
+              <small>Visitors per day, last 14 days · each phone or computer counts once · your own visits aren’t counted · only you see this</small>
             </>
           )}
         </div>

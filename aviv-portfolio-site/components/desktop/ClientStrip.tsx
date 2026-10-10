@@ -2,7 +2,8 @@
 
 import { CLIENTS } from '@/data/clients'
 
-/** An endless, slowly scrolling strip of client logos (pauses on hover). */
+/** An endless, slowly scrolling strip of client logos (pauses on hover).
+ *  On phones it becomes a still grid that wraps, so nothing scrolls sideways. */
 export default function ClientStrip() {
   if (!CLIENTS.length) return null
   // Repeat the list so the strip is always wider than the window, then twice
@@ -14,7 +15,7 @@ export default function ClientStrip() {
       {run.map((c, i) => {
         const inner = c.logo ? <img src={c.logo} alt={hidden ? '' : c.name || 'logo'} draggable={false} /> : <span>{c.name}</span>
         return (
-          <li key={i} title={c.name || undefined}>
+          <li key={i} title={c.name || undefined} data-dup={i >= CLIENTS.length || undefined}>
             {c.href && !hidden ? (
               <a href={c.href} target="_blank" rel="noopener">
                 {inner}

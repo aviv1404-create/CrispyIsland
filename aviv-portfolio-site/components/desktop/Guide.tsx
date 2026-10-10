@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { GUIDE, GUIDE_STEPS, type GuideSpot, type GuideSprite } from '@/data/guide'
+import { collect } from '@/lib/stickers'
 
 const SEEN_KEY = 'guide:seen'
 /** Fired by the desktop's right-click menu ("Show the guide"). */
@@ -176,7 +177,17 @@ export default function Guide({ enabled }: { enabled: boolean }) {
                 <span className="guide-count">
                   {step + 1}/{GUIDE_STEPS.length}
                 </span>
-                <button type="button" className="go" onClick={() => (last ? leave() : say(step + 1))}>
+                <button
+                  type="button"
+                  className="go"
+                  onClick={() => {
+                    if (last) {
+                      // finished the whole tour: he becomes a sticker
+                      collect('guide')
+                      leave()
+                    } else say(step + 1)
+                  }}
+                >
                   {last ? 'Bye!' : 'Next ›'}
                 </button>
               </>

@@ -1,6 +1,6 @@
 import { childFolders, folderById, folderCoverItem, itemsIn, pathOf } from '@/lib/tree-query'
 import type { Folder, Item, Tree } from '@/lib/types'
-import { itemThumb, rotClass } from '@/lib/types'
+import { itemThumb, photoView, rotClass } from '@/lib/types'
 import { DeskIcon, folderIconFor, itemIconFor } from './icons'
 import type { FloatEntry } from './FloatField'
 import type { DesktopApi } from './types'
@@ -16,11 +16,12 @@ export function photosIn(tree: Tree, folderId: string) {
 export function quickLookList(tree: Tree, folderId: string) {
   return photosIn(tree, folderId).map(p => ({
     id: p.id,
-    src: itemThumb(p),
+    src: p.kind === 'photo' ? photoView(p) : itemThumb(p),
     alt: p.alt || p.title,
     title: p.title,
     caption: p.caption,
     rotate: p.kind === 'photo' ? p.rotate : undefined,
+    ...(p.kind === 'photo' ? { px: p.px, width: p.width, height: p.height, original: p.src } : {}),
   }))
 }
 
@@ -87,7 +88,7 @@ export function itemEntry(tree: Tree, item: Item, api: DesktopApi): FloatEntry {
     id: `i:${item.id}`,
     label: label || (item.youtubeUrl ? 'Video' : 'Photo'),
     cell: CELL,
-    icon: <DeskIcon name={itemIconFor(item, folderById(tree, item.folderId))} preview={item.src} previewClass={rotClass(item)} />,
+    icon: <DeskIcon name={itemIconFor(item, folderById(tree, item.folderId))} preview={itemThumb(item)} previewClass={rotClass(item)} />,
     onOpen: () => api.open(spec),
     menu: [
       { label: 'Open', onSelect: () => api.open(spec) },

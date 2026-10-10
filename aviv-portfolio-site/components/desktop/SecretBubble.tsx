@@ -2,8 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ALWAYS, BUBBLE, ODDS } from '@/data/secret'
+import { collect, hasSticker } from '@/lib/stickers'
 
 const ROLL_KEY = 'secret:roll'
+/** Fired to make the goblin run in right now (testing / previews). */
+export const GOBLIN_SHOW_EVENT = 'crispy:goblin-show'
 
 /**
  * The secret pop-up: 1 in ODDS visits, the goblin GIF runs onto the desktop
@@ -15,7 +18,19 @@ export default function SecretBubble() {
   const [show, setShow] = useState(false)
   const [pos, setPos] = useState({ x: 30, y: 30 })
 
+  // Testing: make him run in on demand.
   useEffect(() => {
+    const show = () => {
+      setPos({ x: 32 + Math.random() * 34, y: 16 + Math.random() * 40 })
+      setShow(true)
+    }
+    window.addEventListener(GOBLIN_SHOW_EVENT, show)
+    return () => window.removeEventListener(GOBLIN_SHOW_EVENT, show)
+  }, [])
+
+  useEffect(() => {
+    // Found him already? He's a sticker now and doesn't pop up any more.
+    if (hasSticker('goblin') && !new URLSearchParams(window.location.search).has('secret')) return
     let lucky = false
     try {
       const forced = new URLSearchParams(window.location.search).has('secret')
@@ -45,7 +60,20 @@ export default function SecretBubble() {
     } catch {}
   }
 
-  return <GifPopup pos={pos} href="/secret" image={BUBBLE.image} hint={BUBBLE.hint} label="Open the secret page" onClose={dismiss} />
+  return (
+    <GifPopup
+      pos={pos}
+      href="/secret"
+      image={BUBBLE.image}
+      hint={BUBBLE.hint}
+      label="Open the secret page"
+      onClose={dismiss}
+      onOpen={() => {
+        collect('goblin', { quiet: true })
+        setShow(false)
+      }}
+    />
+  )
 }
 
 /**
@@ -60,6 +88,7 @@ export function GifPopup({
   hint,
   label,
   onClose,
+  onOpen,
   variant = '',
 }: {
   pos: { x: number; y: number }
@@ -68,6 +97,8 @@ export function GifPopup({
   hint: string
   label: string
   onClose: () => void
+  /** called when it's clicked through (before the page opens) */
+  onOpen?: () => void
   /** extra class for a different entrance / size, e.g. 'pirate' */
   variant?: string
 }) {
@@ -125,7 +156,9 @@ export function GifPopup({
           if (dragged.current) {
             e.preventDefault()
             dragged.current = false
+            return
           }
+          onOpen?.()
         }}
       >
         <img src={image} alt="" className="secret-bubble-art" draggable={false} />

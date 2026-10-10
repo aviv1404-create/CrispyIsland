@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import PixImg from '@/components/PixImg'
 
 export interface FlowItem {
   id: string
@@ -9,6 +10,8 @@ export interface FlowItem {
   sub?: string
   /** a rotate-* class for photos turned in the admin */
   className?: string
+  /** pixel placeholder while it loads */
+  px?: string
 }
 
 /**
@@ -105,7 +108,7 @@ export default function CoverFlow({
             >
               <span className="cf-art">
                 {it.src ? (
-                  <img src={it.src} alt="" draggable={false} className={it.className} loading={Math.abs(d) > 3 ? 'lazy' : 'eager'} />
+                  <PixImg src={it.src} px={it.px} alt="" draggable={false} className={it.className || undefined} loading={Math.abs(d) > 3 ? 'lazy' : 'eager'} />
                 ) : (
                   <span className="cf-blank">{it.title}</span>
                 )}

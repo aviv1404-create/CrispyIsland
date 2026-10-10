@@ -56,6 +56,9 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
   const wantShuffle = isList && tape?.order === 'shuffle'
   const [listReady, setListReady] = useState(false)
   const shuffleTarget = useRef<number | null>(null)
+  // The remote's pause button. Paused shows "PAUSE" on screen, not static.
+  const [paused, setPaused] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   const insert = (i: number) => {
     setAt(i)
@@ -79,6 +82,7 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
     setYt({ state: -1 })
     setTapToPlay(false)
     setListReady(false)
+    setPaused(false)
     shuffleTarget.current = null
     setLoading(true)
     const t = setTimeout(() => setLoading(false), 700)
@@ -178,6 +182,36 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
       frameRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'nextVideo', args: [] }), '*')
     } else nextVideo()
   }
+  // ── The remote ──────────────────────────────────────
+  const tell = (yt: string, vimeo: string, args: unknown[] = []) => {
+    const w = frameRef.current?.contentWindow
+    if (!w || !embed) return
+    if (embed.provider === 'youtube') w.postMessage(JSON.stringify({ event: 'command', func: yt, args }), '*')
+    else w.postMessage(JSON.stringify({ method: vimeo }), '*')
+  }
+  const togglePause = () => {
+    if (!playing) return
+    const next = !paused
+    setPaused(next)
+    if (isFile) {
+      const v = videoRef.current
+      if (v) next ? v.pause() : v.play().catch(() => {})
+    } else tell(next ? 'pauseVideo' : 'playVideo', next ? 'pause' : 'play')
+  }
+  const back = () => {
+    if (isList && playing) {
+      setPaused(false)
+      setYt(prev => ({ ...prev, state: 3 }))
+      tell('previousVideo', '')
+    } else if (tape && queue.length) {
+      setPos(p => (p - 1 + queue.length) % queue.length)
+    }
+  }
+  const forward = () => {
+    setPaused(false)
+    skip()
+  }
+
   const src = useMemo(() => {
     if (!embed) return ''
     const sep = embed.embedSrc.includes('?') ? '&' : '?'
@@ -198,7 +232,7 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
   const canSkip = count > 1 || isList
 
   return (
-    <Window {...frame} title="TV" mini={{ w: 280, h: 280, label: 'TV' }} size={{ w: 640, h: 720 }} minSize={{ w: 320, h: 420 }} status={status}>
+    <Window {...frame} title="TV" mini={{ w: 280, h: 280, label: 'TV' }} size={{ w: 640, h: 790 }} minSize={{ w: 320, h: 420 }} status={status}>
       <div className="tv-room">
         <div className={`tv${on ? '' : ' off'}`}>
           <div className="tv-screen">
@@ -217,9 +251,12 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
                       <>
                         {/* Static over the picture until YouTube is actually
                             playing (loading, buffering, between videos). */}
-                        {(yt.state !== 1 || (wantShuffle && !listReady)) && (
+                        {!paused && (yt.state !== 1 || (wantShuffle && !listReady)) && (
                           <div className="tv-static tv-cover" aria-hidden="true" />
                         )}
+                        {/* Paused from the remote: dim the picture (and anything
+                            YouTube shows while paused). */}
+                        {paused && <div className="tv-dim" aria-hidden="true" />}
                         {/* Clicks land on the TV, not on YouTube: no pausing
                             into YouTube's suggestion screen. */}
                         <div className="tv-shield" aria-hidden="true" />
@@ -228,12 +265,12 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
                   </>
                 ) : playing && isFile ? (
                   <video
+                    ref={videoRef}
                     key={`${tape!.id}-${pos}-${video!.id}`}
                     className="tv-video"
                     src={video!.url}
                     autoPlay
                     playsInline
-                    controls
                     onEnded={() => nextRef.current()}
                   />
                 ) : tape?.art && !loading && !video ? (
@@ -245,6 +282,7 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
                   <span>CH {String(at + 1).padStart(2, '0')}</span>
                   {!video && !loading && !tape?.art && <strong>NO SIGNAL</strong>}
                   {video && loading && <strong>▶ PLAY</strong>}
+                  {playing && paused && <strong className="tv-paused">❚❚ PAUSE</strong>}
                 </div>
               </>
             )}
@@ -266,6 +304,21 @@ export default function TvWindow({ frame }: { frame: FrameProps }) {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* A little remote: back, pause/play, forward. */}
+        <div className="tv-remote" role="group" aria-label="Remote control">
+          <span className="tv-remote-ir" aria-hidden="true" />
+          <button type="button" onClick={back} disabled={!playing || !(canSkip || isList)} aria-label="Previous video" title="Previous">
+            ⏮
+          </button>
+          <button type="button" className="tv-remote-play" onClick={togglePause} disabled={!playing} aria-label={paused ? 'Play' : 'Pause'} title={paused ? 'Play' : 'Pause'}>
+            {paused ? '▶' : '❚❚'}
+          </button>
+          <button type="button" onClick={forward} disabled={!playing || !canSkip} aria-label="Next video" title="Next">
+            ⏭
+          </button>
+          <span className="tv-remote-brand" aria-hidden="true">CRISPY·VISION</span>
         </div>
 
         <div className="vhs-shelf" role="listbox" aria-label="VHS tapes">

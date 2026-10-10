@@ -37,6 +37,14 @@ export interface PhotoItem extends ItemBase {
   youtubeUrl?: string
   /** clockwise turn, set in the admin for sideways scans; unset = as uploaded */
   rotate?: Rotation
+  /** Smaller copies made at upload (the "file update"); `src` stays the full original.
+   *  web — ~2000px, shown when the photo is opened
+   *  thumb — ~720px, shown in folders, the cover flow and icons
+   *  px — a tiny 8-pixel picture ("w,h,RGB…" in 4-bit hex), drawn big and
+   *       blocky while the real photo loads */
+  web?: string
+  thumb?: string
+  px?: string
 }
 
 export type Rotation = 90 | 180 | 270
@@ -138,7 +146,17 @@ export type RootSlug = (typeof ROOT_SLUGS)[number]
 
 /** The thumbnail a tile should show, whichever kind it is. */
 export function itemThumb(item: Item): string {
-  return item.kind === 'film' ? item.posterSrc : item.src
+  return item.kind === 'film' ? item.posterSrc : item.thumb || item.src
+}
+
+/** The picture to show when a photo is opened: the web copy, else the original. */
+export function photoView(item: PhotoItem): string {
+  return item.web || item.src
+}
+
+/** The tiny pixel placeholder, if the photo has one. */
+export function itemPx(item: Item): string | undefined {
+  return item.kind === 'photo' ? item.px : undefined
 }
 
 export function slugify(name: string): string {

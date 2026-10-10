@@ -130,6 +130,9 @@ export function normalizeTree(raw: unknown): Tree {
       ...(i.height ? { height: Number(i.height) } : {}),
       ...(i.youtubeUrl ? { youtubeUrl: String(i.youtubeUrl) } : {}),
       ...([90, 180, 270].includes(Number(i.rotate)) ? { rotate: Number(i.rotate) as Rotation } : {}),
+      ...(typeof i.web === 'string' && i.web ? { web: i.web } : {}),
+      ...(typeof i.thumb === 'string' && i.thumb ? { thumb: i.thumb } : {}),
+      ...(typeof i.px === 'string' && /^\d{1,2},\d{1,2},[0-9a-f]+$/.test(i.px) && i.px.length < 400 ? { px: i.px } : {}),
     }
   })
 

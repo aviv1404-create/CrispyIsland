@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useContextMenu, type MenuItem } from './ContextMenu'
 
 export interface FloatEntry {
@@ -41,6 +41,11 @@ interface FloatFieldProps {
   /** Phones: icons sit in a grid; long-press makes them wiggle, then drag to
    *  re-order (like a phone home screen). The order is remembered. */
   reorderable?: boolean
+  /** Phones: icons are free like on a computer, but a drag only starts after
+   *  a short press-and-hold, so a quick tap still opens and a swipe does nothing. */
+  holdToDrag?: boolean
+  /** Override each icon's cell size (phones use smaller cells). */
+  cellFor?: (e: FloatEntry) => { w: number; h: number }
 }
 
 export interface Anchor {
@@ -175,7 +180,7 @@ function layoutWithPresets(
  */
 export default function FloatField({
   scope,
-  entries,
+  entries: rawEntries,
   arrange = 'rows',
   draggable = true,
   backgroundMenu = [],
@@ -183,7 +188,13 @@ export default function FloatField({
   className = '',
   presets,
   reorderable = false,
+  holdToDrag = false,
+  cellFor,
 }: FloatFieldProps) {
+  const entries = useMemo(
+    () => (cellFor ? rawEntries.map(e => ({ ...e, cell: cellFor(e) })) : rawEntries),
+    [rawEntries, cellFor]
+  )
   const ref = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<{ w: number; h: number } | null>(null)
   const [saved, setSaved] = useState<Record<string, Point>>({})
@@ -304,6 +315,8 @@ export default function FloatField({
     moved: boolean
     cell: { w: number; h: number }
     longPress?: ReturnType<typeof setTimeout>
+    /** hold-to-drag: false until the press has been held long enough */
+    armed?: boolean
   } | null>(null)
   const suppressClick = useRef(false)
   const glide = useRef<number | null>(null)
@@ -329,6 +342,9 @@ export default function FloatField({
 
   const onPointerDown = (e: React.PointerEvent, entry: FloatEntry) => {
     if (e.button !== 0) return
+    // a new press: forget any "swallow the next click" left over from a
+    // touch drag (a dragged touch never produces its own click)
+    suppressClick.current = false
     setSelected(entry.id)
     setOrder(o => [...o.filter(id => id !== entry.id), entry.id])
     if (glide.current) cancelAnimationFrame(glide.current)
@@ -346,8 +362,23 @@ export default function FloatField({
       cell: entry.cell ?? DEFAULT_CELL,
     }
 
-    // Long-press opens the context menu on touch screens.
-    if (e.pointerType === 'touch' && entry.menu?.length) {
+    // Phones: hold first, then drag. The icon lifts when it's ready to move.
+    if (holdToDrag && e.pointerType !== 'mouse') {
+      const d = drag.current
+      d.armed = false
+      d.longPress = setTimeout(() => {
+        if (drag.current !== d) return
+        d.armed = true
+        // fresh start point, so the icon doesn't jump by however far the finger crept
+        d.start = { ...d.last }
+        suppressClick.current = true
+        setLive({ id: d.id, p: d.origin, tilt: 0 })
+        try {
+          navigator.vibrate?.(12)
+        } catch {}
+      }, 320)
+    } else if (e.pointerType === 'touch' && entry.menu?.length) {
+      // Long-press opens the context menu on touch screens.
       const { clientX, clientY } = e
       drag.current.longPress = setTimeout(() => {
         suppressClick.current = true
@@ -362,6 +393,15 @@ export default function FloatField({
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current
     if (!d || d.pointerId !== e.pointerId || !free) return
+    if (d.armed === false) {
+      // not held long enough yet: a moving finger means "never mind"
+      d.last = { x: e.clientX, y: e.clientY }
+      if (Math.hypot(e.clientX - d.start.x, e.clientY - d.start.y) > 10) {
+        if (d.longPress) clearTimeout(d.longPress)
+        drag.current = null
+      }
+      return
+    }
     const dx = e.clientX - d.start.x
     const dy = e.clientY - d.start.y
     if (!d.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return
@@ -389,7 +429,11 @@ export default function FloatField({
     if (!d || d.pointerId !== e.pointerId) return
     if (d.longPress) clearTimeout(d.longPress)
     drag.current = null
-    if (!d.moved) return
+    if (!d.moved) {
+      // held but not moved: put it back down where it was
+      if (d.armed) setLive(null)
+      return
+    }
 
     suppressClick.current = true
     // Glide: keep the release velocity, bleed it off with friction, bounce

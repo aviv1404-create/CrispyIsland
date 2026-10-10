@@ -8,6 +8,7 @@ import { GAMES } from '@/data/games'
 import { DESK_LAYOUT } from '@/data/desktop'
 import SecretBubble from './SecretBubble'
 import PirateBubble from './PirateBubble'
+import StickerTray from './StickerTray'
 import { VisitPing } from './VisitCounter'
 import DeskIconEditor, { type IconEdit } from './DeskIconEditor'
 import Guide, { GUIDE_EVENT } from './Guide'
@@ -42,18 +43,23 @@ interface DesktopProps {
 }
 
 // ── Small screens get one full-screen window at a time ──
-const MOBILE_QUERY = '(max-width: 700px)'
-function useIsMobile() {
+// A phone turned sideways (wide but short, touch screen) counts as a phone too.
+const MOBILE_QUERY = '(max-width: 700px), (pointer: coarse) and (max-height: 520px)'
+const WIDE_QUERY = '(pointer: coarse) and (max-height: 520px) and (min-width: 701px)'
+function useQuery(query: string) {
   return useSyncExternalStore(
     cb => {
-      const mq = window.matchMedia(MOBILE_QUERY)
+      const mq = window.matchMedia(query)
       mq.addEventListener('change', cb)
       return () => mq.removeEventListener('change', cb)
     },
-    () => window.matchMedia(MOBILE_QUERY).matches,
+    () => window.matchMedia(query).matches,
     () => false
   )
 }
+const useIsMobile = () => useQuery(MOBILE_QUERY)
+/** a phone on its side */
+const useIsWide = () => useQuery(WIDE_QUERY)
 
 // Back/Forward detection. Registered in the capture phase at module load so it
 // runs before Next's own popstate handling re-renders anything.
@@ -75,11 +81,15 @@ const newId = () => `w${++nextWinId}`
  * shareable URL and the routes (/photography, /p/[id], /about, /search) still
  * work when visited directly — they just open the right window(s) on load.
  */
+/** Phones: smaller icon cells (wide icons like the game ship stay a bit wider). */
+const phoneCell = (e: FloatEntry) => (e.cell && e.cell.w > 110 ? { w: 100, h: 92 } : { w: 80, h: 92 })
+
 export default function Desktop({ tree, isAdmin, children }: DesktopProps) {
   const pathname = usePathname() ?? '/'
   // /admin and the secret 90s page draw their own full-screen pages.
   const passthrough = pathname.startsWith('/admin') || pathname.startsWith('/secret')
   const isMobile = useIsMobile()
+  const isWide = useIsWide()
 
   const zTop = useRef(0)
   const cascade = useRef(0)
@@ -424,19 +434,20 @@ export default function Desktop({ tree, isAdmin, children }: DesktopProps) {
     <ContextMenuProvider>
       <div
         ref={deskRef}
-        className={`desktop${isMobile ? ' mobile' : ''}${!isMobile && wins.some(w => w.maximized) ? ' has-max' : ''}`}
+        className={`desktop${isMobile ? ' mobile' : ''}${isMobile && isWide ? ' wide' : ''}${!isMobile && wins.some(w => w.maximized) ? ' has-max' : ''}`}
       >
         <div className="desktop-wallpaper" aria-hidden="true">
           {DESKTOP_ART && <img className="desktop-art" src={DESKTOP_ART} alt="" />}
         </div>
 
         <FloatField
-          scope="desktop"
+          // icons keep their own spots on a computer, an upright phone and a sideways phone
+          scope={isMobile ? (isWide ? 'phone-wide' : 'phone') : 'desktop'}
           entries={deskEntries}
           arrange={isMobile ? 'rows' : 'right-column'}
-          draggable={!isMobile}
-          reorderable={isMobile}
-          presets={DESK_LAYOUT}
+          holdToDrag={isMobile}
+          cellFor={isMobile ? phoneCell : undefined}
+          presets={isMobile ? undefined : DESK_LAYOUT}
           fill
           className="desktop-icons"
           backgroundMenu={[
@@ -445,6 +456,9 @@ export default function Desktop({ tree, isAdmin, children }: DesktopProps) {
             ...(!isMobile ? [{ label: 'Show the guide', onSelect: () => window.dispatchEvent(new Event(GUIDE_EVENT)) }] : []),
           ]}
         />
+
+        {/* Found secrets, stuck to the desktop like stickers (under every window). */}
+        <StickerTray mobile={isMobile} />
 
         {playerOpen && <MediaPlayer isMobile={isMobile} onClose={() => setPlayerOpen(false)} />}
 

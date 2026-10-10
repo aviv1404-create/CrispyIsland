@@ -1,6 +1,7 @@
 'use client'
 
-import { rotClass } from '@/lib/types'
+import { photoView, rotClass } from '@/lib/types'
+import PixImg from '@/components/PixImg'
 import { useEffect, useRef } from 'react'
 import { folderById, itemById } from '@/lib/tree-query'
 import { getEmbedUrl } from '@/lib/video'
@@ -87,6 +88,11 @@ export default function PhotoWindow({ frame, itemId }: { frame: FrameProps; item
           <PixIcon name="expand" size={12} /> Full Screen
         </button>
       )}
+      {photo.web && (
+        <a className="win-btn ghost" href={photo.src} target="_blank" rel="noopener noreferrer" title="Open the full-size original">
+          <PixIcon name="expand" size={12} /> Original
+        </a>
+      )}
       <button type="button" className="win-btn ghost" onClick={() => api.copyLink(`/p/${photo.id}`)}>
         <PixIcon name="link" size={12} /> Copy Link
       </button>
@@ -130,7 +136,16 @@ export default function PhotoWindow({ frame, itemId }: { frame: FrameProps; item
             allowFullScreen
           />
         ) : photo.src ? (
-          <img src={photo.src} alt={photo.alt || title} draggable={false} key={photo.id} className={rotClass(photo)} />
+          <PixImg
+            src={photoView(photo)}
+            px={photo.px}
+            width={photo.width}
+            height={photo.height}
+            alt={photo.alt || title}
+            draggable={false}
+            key={photo.id}
+            className={rotClass(photo) || undefined}
+          />
         ) : (
           <div className="lightbox-missing">Image coming soon</div>
         )}
@@ -139,7 +154,7 @@ export default function PhotoWindow({ frame, itemId }: { frame: FrameProps; item
           <span hidden aria-hidden="true">
             {[1, -1].map(d => {
               const n = siblings[(index + d + siblings.length) % siblings.length]
-              return n.kind === 'photo' && n.src ? <img key={n.id} src={n.src} alt="" loading="eager" /> : null
+              return n.kind === 'photo' && n.src ? <img key={n.id} src={photoView(n)} alt="" loading="eager" /> : null
             })}
           </span>
         )}

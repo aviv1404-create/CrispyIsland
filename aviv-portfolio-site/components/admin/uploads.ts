@@ -124,3 +124,24 @@ export async function sendFile(
     xhr.send(form)
   })
 }
+
+/**
+ * Upload a photo's smaller copies (see ./variants) and return the fields to
+ * save on the photo: { web, thumb, px }. A copy that isn't needed (the
+ * original is already small) is left out, so the site falls back to `src`.
+ */
+export async function sendVariants(
+  source: Blob,
+  mode: UploadMode,
+  signal?: AbortSignal
+): Promise<{ web?: string; thumb?: string; px?: string }> {
+  const { makeVariants } = await import('./variants')
+  const v = await makeVariants(source)
+  if (!v) return {}
+  const ext = v.type === 'image/webp' ? 'webp' : 'jpg'
+  const [web, thumb] = await Promise.all([
+    v.web ? sendFile({ blob: v.web, name: `web.${ext}`, type: v.type }, mode, () => {}, signal) : undefined,
+    v.thumb ? sendFile({ blob: v.thumb, name: `thumb.${ext}`, type: v.type }, mode, () => {}, signal) : undefined,
+  ])
+  return { ...(web ? { web } : {}), ...(thumb ? { thumb } : {}), px: v.px }
+}

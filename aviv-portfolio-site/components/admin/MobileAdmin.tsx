@@ -42,6 +42,7 @@ import type { UploadMode } from './uploads'
 import { useAdminStore, type SaveState } from './useAdminStore'
 import { useUploadQueue } from './useUploadQueue'
 import StorageMeter from './StorageMeter'
+import Optimizer from './Optimizer'
 
 interface Props {
   initialTree: Tree
@@ -224,6 +225,7 @@ export default function MobileAdmin({ initialTree, initialRev, uploadMode, user,
         </p>
       )}
       {!readOnly && <StorageMeter bump={storageBump} compact />}
+      <Optimizer tree={tree} apply={apply} mode={uploadMode} paused={uploads.busy} readOnly={readOnly} compact />
       {save === 'error' && error && <p className="ma-banner error">{error}</p>}
 
       <main className="ma-body">

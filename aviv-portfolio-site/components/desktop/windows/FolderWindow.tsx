@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import PixIcon from '@/components/PixIcon'
 import { breadcrumb, childFolders, folderById, folderCover, itemsIn } from '@/lib/tree-query'
-import { itemThumb, rotClass } from '@/lib/types'
+import { itemPx, itemThumb, rotClass } from '@/lib/types'
+import PixImg from '@/components/PixImg'
 import FloatField from '../FloatField'
 import { folderContents } from '../entries'
 import { SearchGlyph, folderIconFor, itemIconFor } from '../icons'
@@ -109,6 +110,7 @@ export default function FolderWindow({ frame, folderId }: { frame: FrameProps; f
     ...items.map((it, i) => ({
       id: `i:${it.id}`,
       src: itemThumb(it) || undefined,
+      px: itemPx(it),
       title: it.title || `${i + 1} of ${items.length}`,
       sub: it.caption,
       className: rotClass(it),
@@ -194,7 +196,7 @@ export default function FolderWindow({ frame, folderId }: { frame: FrameProps; f
                       aria-label={entry.label}
                     >
                       {itemThumb(item) ? (
-                        <img src={itemThumb(item)} alt={item.alt} loading="lazy" className={rotClass(item)} />
+                        <PixImg src={itemThumb(item)} px={itemPx(item)} alt={item.alt} loading="lazy" className={rotClass(item) || undefined} />
                       ) : (
                         <span className="item-tile-blank">{item.kind === 'film' ? 'FILM' : 'PHOTO'}</span>
                       )}

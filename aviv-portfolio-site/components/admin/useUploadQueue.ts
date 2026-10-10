@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { addItemsToFront, blankPhoto } from '@/lib/tree-ops'
 import type { PhotoItem } from '@/lib/types'
-import { prepareFile, sendFile, type UploadMode } from './uploads'
+import { prepareFile, sendFile, sendVariants, type UploadMode } from './uploads'
 import type { Op } from './useAdminStore'
 
 export interface UploadJob {
@@ -43,10 +43,14 @@ export function useUploadQueue(mode: UploadMode, apply: (op: Op) => void) {
       ;(async () => {
         try {
           const prepared = await prepareFile(job.file)
-          const url = await sendFile(prepared, mode, p => update(job.id, { progress: p }))
+          // the original (90% of the bar), then its smaller copies
+          const url = await sendFile(prepared, mode, p => update(job.id, { progress: p * 0.9 }))
+          // a copy that fails isn't worth losing the upload over — the optimizer retries it later
+          const copies = await sendVariants(prepared.blob, mode).catch(() => ({}))
           const photo: PhotoItem = {
             ...blankPhoto(job.folderId, url, 0),
             ...(prepared.width && prepared.height ? { width: prepared.width, height: prepared.height } : {}),
+            ...copies,
           }
           apply(t => addItemsToFront(t, job.folderId, [photo]))
           update(job.id, { status: 'done', progress: 1 })

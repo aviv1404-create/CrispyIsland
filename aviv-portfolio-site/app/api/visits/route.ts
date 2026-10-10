@@ -5,13 +5,14 @@ export const dynamic = 'force-dynamic'
 
 const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|embedly|lighthouse|headless|curl|wget|python|monitor/i
 
-/** Count one visit. Bots and the signed-in admin aren't counted. */
+/** Count one visit (and a new person / a person's first visit today). Bots and the signed-in admin aren't counted. */
 export async function POST(req: Request) {
   const ua = req.headers.get('user-agent') ?? ''
   if (!ua || BOT.test(ua)) return new Response(null, { status: 204 })
   if (await currentAdmin()) return new Response(null, { status: 204 })
   try {
-    await recordVisit()
+    const body = (await req.json().catch(() => ({}))) as { newPerson?: unknown; newToday?: unknown }
+    await recordVisit({ newPerson: body.newPerson === true, newToday: body.newToday === true })
   } catch (err) {
     console.error('visits: could not record —', err instanceof Error ? err.message : err)
   }
